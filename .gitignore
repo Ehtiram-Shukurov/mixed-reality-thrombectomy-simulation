@@ -120,3 +120,5 @@ InitTestScene*.unity*
 
 # Backup folders
 /[Ff]inal[Pp]roject_[Bb]ack[Uu]p*/
+
+/[Aa]ssets/[Ss]treamingAssets/*.zip
