@@ -104,3 +104,19 @@ InitTestScene*.unity*
 
 # Auto-generated cache in Assets folder
 /[Aa]ssets/[Ss]ceneDependencyCache*
+
+# DICOM and medical data — too large for git
+/[Aa]ssets/[Ss]treamingAssets/*.json
+/[Aa]ssets/[Ss]treamingAssets/*.dcm
+/[Aa]ssets/[Ss]treamingAssets/*.nii
+/[Aa]ssets/[Ss]treamingAssets/*.nii.gz
+/[Aa]ssets/[Ss]treamingAssets/*.bytes
+
+# Plastic SCM
+.plastic/
+
+# Burst debug info
+/[Ff]inal[Pp]roject_[Bb]urst[Dd]ebug[Ii]nformation_[Dd]o[Nn]ot[Ss]hip/
+
+# Backup folders
+/[Ff]inal[Pp]roject_[Bb]ack[Uu]p*/
