@@ -7,7 +7,7 @@ extracted from the same scan.
 
 Built for CSCI 5629 at the University of Minnesota.
 
-**Team:** Alex Berg, Ezra Shukurov, Margad-Erdene Tegshbayar
+**Team:** Alex Berg, Ezra Shukurov
 
 ---
 
