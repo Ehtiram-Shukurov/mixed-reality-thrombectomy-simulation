@@ -111,6 +111,8 @@ InitTestScene*.unity*
 /[Aa]ssets/[Ss]treamingAssets/*.nii
 /[Aa]ssets/[Ss]treamingAssets/*.nii.gz
 /[Aa]ssets/[Ss]treamingAssets/*.bytes
+/[Aa]ssets/[Ss]treamingAssets/DICOM/
+/[Aa]ssets/[Ss]treamingAssets/DICOM.meta
 
 # Plastic SCM
 .plastic/
