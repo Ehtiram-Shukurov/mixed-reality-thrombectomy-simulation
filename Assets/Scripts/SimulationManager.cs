@@ -62,22 +62,22 @@ public class SimulationManager : MonoBehaviour
                 _extractionPenalty = 0;
                 fluoroController?.ResetTimer();
                 SetGuidewire(true);
-                Debug.Log("[SimManager] Phase 1 — Navigate guidewire to clot.");
+                Debug.Log("[SimManager] Phase 1 â€” Navigate guidewire to clot.");
                 break;
 
             case SimPhase.Phase2a_CatheterAdvance:
                 SetGuidewire(false);
                 catheterSimulator?.BeginAdvance();
-                Debug.Log("[SimManager] Phase 2a — Advance catheter to clot.");
+                Debug.Log("[SimManager] Phase 2a â€” Advance catheter to clot.");
                 break;
 
             case SimPhase.Phase2b_StentDeploy:
-                Debug.Log("[SimManager] Phase 2b — Deploy stent.");
+                Debug.Log("[SimManager] Phase 2b â€” Deploy stent.");
                 break;
 
             case SimPhase.Phase2c_Extraction:
                 catheterSimulator?.BeginRetraction();
-                Debug.Log("[SimManager] Phase 2c — Extract clot.");
+                Debug.Log("[SimManager] Phase 2c â€” Extract clot.");
                 break;
 
             case SimPhase.Phase3_Results:
@@ -85,7 +85,7 @@ public class SimulationManager : MonoBehaviour
                 SetGuidewire(false);
                 HapticManager.Instance?.PulseOnce(1f, 0.6f);
                 ShowResults();
-                Debug.Log("[SimManager] Phase 3 — Results.");
+                Debug.Log("[SimManager] Phase 3 â€” Results.");
                 break;
         }
     }

@@ -1,6 +1,6 @@
 using UnityEngine;
 
-// Centralized haptic controller. All scripts call this — nothing calls OVRInput directly.
+// Centralized haptic controller. All scripts call this â€” nothing calls OVRInput directly.
 public class HapticManager : MonoBehaviour
 {
     public static HapticManager Instance { get; private set; }
@@ -39,7 +39,7 @@ public class HapticManager : MonoBehaviour
         _pulsing = true;
     }
 
-    // Two quick pulses — stent deploy
+    // Two quick pulses â€” stent deploy
     public void DoublePulse(float strength)
     {
         StartCoroutine(DoublePulseRoutine(strength));

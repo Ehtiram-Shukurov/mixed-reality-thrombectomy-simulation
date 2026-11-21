@@ -1,6 +1,6 @@
 using UnityEngine;
 
-// Fluoroscopy controller — hold the A button to activate X-ray mode.
+// Fluoroscopy controller â€” hold the A button to activate X-ray mode.
 public class FluoroController : MonoBehaviour
 {
     [Header("References")]
@@ -11,11 +11,11 @@ public class FluoroController : MonoBehaviour
              "Mode 6 was confirmed working in the old CatheterController.")]
     public int fluoroRenderMode = 6;
 
-    // Public state — read by SimulationManager and GuidewireUI
+    // Public state â€” read by SimulationManager and GuidewireUI
     public bool IsActive { get; private set; } = false;
     public float TotalExposureTime { get; private set; } = 0f;
 
-    // The render mode that was active before fluoro — restored on release
+    // The render mode that was active before fluoro â€” restored on release
     private int _previousRenderMode = 0;
 
     void Update()
