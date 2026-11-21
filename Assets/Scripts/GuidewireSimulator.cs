@@ -1,7 +1,7 @@
 using UnityEngine;
 using System.Collections.Generic;
 
-// Guidewire navigation — graph-based, right stick only.
+// Guidewire navigation â€” graph-based, right stick only.
 // Stick Y = advance/retract. Stick X = twist at forks.
 public class GuidewireSimulator : MonoBehaviour
 {
@@ -342,7 +342,7 @@ public class GuidewireSimulator : MonoBehaviour
             _bestBranchAngle = 180f;
             HideAllArrows();
             HapticManager.Instance?.StopContinuous();
-            Debug.Log($"[Guidewire] Branch unlocked at {bestAngle:F1}°.");
+            Debug.Log($"[Guidewire] Branch unlocked at {bestAngle:F1}Â°.");
         }
     }
     public void ResetGuidewire() => InitializeGuidewire();

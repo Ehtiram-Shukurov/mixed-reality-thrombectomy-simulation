@@ -25,7 +25,7 @@
 //        OnPlayAgain();
 //    }
 
-//    // Called by SimulationManager.ShowResults() — colors scores by performance
+//    // Called by SimulationManager.ShowResults() â€” colors scores by performance
 //    public void ShowResults(float totalTime, float radiation, float safety)
 //    {
 //        int min = Mathf.FloorToInt(totalTime / 60f);
