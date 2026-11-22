@@ -40,7 +40,7 @@ public class GuidewireUI : MonoBehaviour
             SimulationManager.SimPhase.Phase1_Navigation => "Advance guidewire through vessel. Twist at forks to choose branch. Hold A for X-ray.",
             SimulationManager.SimPhase.Phase2a_CatheterAdvance => "Catheter following guidewire path. Push forward to advance.",
             SimulationManager.SimPhase.Phase2b_StentDeploy => "Clot reached. Press B to deploy stent.",
-            SimulationManager.SimPhase.Phase2c_Extraction => "Pull back to extract. Slow and steady.",
+            SimulationManager.SimPhase.Phase2c_Extraction => "Pull back slowly. Keep the pace bar green. It buzzes if you go too fast.",
             SimulationManager.SimPhase.Phase3_Results => "Procedure complete.",
             _ => ""
         };

@@ -27,6 +27,11 @@ public class CatheterSimulator : MonoBehaviour
     public bool IsAdvancing => _advancing;
     public bool IsRetracting => _retracting;
 
+    // How hard the stick is pulled compared with the allowed pace. Above 1 is too fast.
+    public float PaceRatio { get; private set; }
+    public bool IsTooFast { get; private set; }
+    private float _nextWarnSound;
+
     // World direction the catheter is pointing along the path. Used to orient the stent.
     public Vector3 TipDirection
     {
@@ -44,6 +49,8 @@ public class CatheterSimulator : MonoBehaviour
         _advancing = false;
         _retracting = false;
         _speedWarningActive = false;
+        IsTooFast = false;
+        PaceRatio = 0f;
         _trail = null;
         _trailIndex = 0;
         if (catheterBodyRenderer != null) catheterBodyRenderer.Clear();
@@ -131,24 +138,40 @@ public class CatheterSimulator : MonoBehaviour
         {
             HapticManager.Instance?.StopContinuous();
             _speedWarningActive = false;
+            IsTooFast = false;
+            PaceRatio = 0f;
             return;
         }
 
         float requested = input * maxRetractSpeed * 3f;
         float actual = Mathf.Min(requested, maxRetractSpeed);
+        float limit = maxRetractSpeed * 1.1f;
+        PaceRatio = requested / limit;
 
-        if (requested > maxRetractSpeed * 1.1f)
+        if (requested > limit)
         {
+            IsTooFast = true;
             if (!_speedWarningActive)
             {
+                // One penalty per episode.
                 _speedWarningActive = true;
                 Feedback.SpeedWarning();
                 simManager?.AddExtractionPenalty(speedPenaltyPoints);
+                _nextWarnSound = Time.time + 0.6f;
                 Debug.Log("[CatheterSim] Speed warning.");
             }
+            else if (Time.time >= _nextWarnSound)
+            {
+                // Keep beeping while it stays too fast.
+                AudioCues.Instance?.Play(AudioCues.Cue.Warning);
+                _nextWarnSound = Time.time + 0.6f;
+            }
+            // Keep buzzing until the pace comes down.
+            HapticManager.Instance?.TooFast();
         }
         else
         {
+            IsTooFast = false;
             _speedWarningActive = false;
             HapticManager.Instance?.Retracting();
         }

@@ -33,26 +33,8 @@ public class ForkDial : MonoBehaviour
         var rig = FindFirstObjectByType<OVRCameraRig>();
         if (rig != null) _head = rig.centerEyeAnchor;
         if (group != null) group.alpha = 0f;
-        MakeAlwaysVisible();
-    }
-
-    // The dial floats inside the volume's depth range, so draw it without a depth test.
-    private void MakeAlwaysVisible()
-    {
-        int zTest = Shader.PropertyToID("unity_GUIZTestMode");
-        foreach (var g in GetComponentsInChildren<Graphic>(true))
-        {
-            if (g is TMP_Text tmp)
-            {
-                tmp.fontMaterial.SetInt(zTest, (int)UnityEngine.Rendering.CompareFunction.Always);
-            }
-            else
-            {
-                var m = new Material(g.material);
-                m.SetInt(zTest, (int)UnityEngine.Rendering.CompareFunction.Always);
-                g.material = m;
-            }
-        }
+        // The dial floats inside the volume's depth range, so draw it without a depth test.
+        UiDepth.MakeAlwaysVisible(gameObject);
     }
 
     void LateUpdate()

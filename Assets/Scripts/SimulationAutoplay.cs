@@ -50,8 +50,8 @@ public class SimulationAutoplay : MonoBehaviour
         yield return RunOnce(takeWrongTurn);
 
         // Play Again
-        Log("press Play Again");
-        _rp.OnPlayAgainToggle(true);
+        Log("press A on the results screen (Play Again shortcut)");
+        SimInput.ConfirmOverride = true;
         yield return null;
         yield return null;
         Log("after Play Again: phase " + _sm.CurrentPhase + ", depth " + _gw.HistoryDepth
@@ -172,16 +172,25 @@ public class SimulationAutoplay : MonoBehaviour
         // ---- Phase 2c: extraction. Pull too fast at first to trigger a warning. ----
         t0 = Time.time;
         bool clotVisibleSeen = false;
+        bool sawTooFast = false, sawOk = false;
+        float maxPace = 0f, minPaceOk = 9f;
+        var pace = FindFirstObjectByType<PaceHint>();
+        float paceAlphaFast = -1f, paceAlphaOk = -1f;
+        string paceTextFast = "", paceTextOk = "";
         while (_sm.CurrentPhase == SimulationManager.SimPhase.Phase2c_Extraction && Time.time - t0 < 400f)
         {
             float push = (Time.time - t0) < 1.5f ? 1f : 0.3f;
             SimInput.StickOverride = new Vector2(0f, -push);
             var r = _clot.GetComponent<Renderer>();
             if (r != null && r.enabled) clotVisibleSeen = true;
+            if (_cath.IsTooFast) { sawTooFast = true; maxPace = Mathf.Max(maxPace, _cath.PaceRatio); if (pace != null) { paceAlphaFast = pace.group.alpha; paceTextFast = pace.label.text; } }
+            else if (_cath.PaceRatio > 0.01f) { sawOk = true; minPaceOk = Mathf.Min(minPaceOk, _cath.PaceRatio); if (pace != null) { paceAlphaOk = pace.group.alpha; paceTextOk = pace.label.text; } }
             yield return null;
         }
         SimInput.StickOverride = Vector2.zero;
         Log("extraction done, phase now " + _sm.CurrentPhase + ", clot was visible on tip " + clotVisibleSeen);
+        Log("pace: too fast seen " + sawTooFast + " (max ratio " + maxPace.ToString("F2") + ", meter alpha " + paceAlphaFast.ToString("F2") + ", text '" + paceTextFast + "'); "
+            + "ok pace seen " + sawOk + " (ratio " + minPaceOk.ToString("F2") + ", meter alpha " + paceAlphaOk.ToString("F2") + ", text '" + paceTextOk + "')");
 
         // ---- Phase 3 ----
         yield return new WaitForSecondsRealtime(0.5f);
