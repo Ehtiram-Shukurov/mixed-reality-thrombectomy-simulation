@@ -10,13 +10,30 @@ public class GuidewireUI : MonoBehaviour
 
     public TextMeshProUGUI phaseText;   
     public TextMeshProUGUI fluoroText;  
-    public TextMeshProUGUI forkText;    
+    public TextMeshProUGUI forkText;
+    public TextMeshProUGUI instructionText; // one line of help for the current phase
 
     void Update()
     {
         UpdatePhase();
+        UpdateInstruction();
         UpdateFluoro();
         UpdateFork();
+    }
+
+    private void UpdateInstruction()
+    {
+        if (instructionText == null || simManager == null) return;
+
+        instructionText.text = simManager.CurrentPhase switch
+        {
+            SimulationManager.SimPhase.Phase1_Navigation => "Advance guidewire through vessel. Twist at forks to choose branch. Hold A for X-ray.",
+            SimulationManager.SimPhase.Phase2a_CatheterAdvance => "Catheter following guidewire path. Push forward to advance.",
+            SimulationManager.SimPhase.Phase2b_StentDeploy => "Clot reached. Press B to deploy stent.",
+            SimulationManager.SimPhase.Phase2c_Extraction => "Pull back to extract. Slow and steady.",
+            SimulationManager.SimPhase.Phase3_Results => "Procedure complete.",
+            _ => ""
+        };
     }
 
     private void UpdatePhase()
@@ -62,10 +79,16 @@ public class GuidewireUI : MonoBehaviour
 
         forkText.gameObject.SetActive(true);
 
-        float signal = Mathf.Clamp01(1f - (guidewireSimulator.BestBranchAngle / 180f)) * 100f;
-        forkText.color = signal >= 80f ? Color.green
-                       : signal >= 50f ? Color.yellow
-                       : Color.red;
-        forkText.text = $"FORK  {signal:F0}%";
+        int dir = guidewireSimulator.TwistDirection;
+        if (dir == 0)
+        {
+            forkText.color = Color.green;
+            forkText.text = "Aligned. Push forward.";
+        }
+        else
+        {
+            forkText.color = Color.yellow;
+            forkText.text = dir < 0 ? "Fork reached. Twist left <<" : "Fork reached. Twist right >>";
+        }
     }
 }

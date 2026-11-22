@@ -15,10 +15,6 @@ public class GuidewireSimulator : MonoBehaviour
     public float twistSpeed = 60f;
     public float alignmentTolerance = 35f;
 
-    [Header("Fork Visualizer")]
-    public float arrowLength = 0.01f;
-    public float arrowWidth = 0.002f;
-
     // Navigation state
     private CenterlineNode previousNode;
     private CenterlineNode currentNode;
@@ -36,16 +32,17 @@ public class GuidewireSimulator : MonoBehaviour
     public bool IsReady => isReady;
     public bool IsAtFork => isAtFork;
     public float BestBranchAngle => _bestBranchAngle;
+
+    // Signed angle from the tip to the closest branch, seen along the vessel.
+    public float BranchSignedAngle { get; private set; }
+    // Which way to push the stick to close the gap: -1 left, +1 right, 0 aligned.
+    public int TwistDirection { get; private set; }
     public int HistoryDepth => history.Count;
     public List<Vector3> TrailPoints => _trailPoints;
 
     // Trail
     private List<Vector3> _trailPoints = new List<Vector3>();
     private Stack<CenterlineNode> history = new Stack<CenterlineNode>();
-
-    // Fork visualizer
-    private LineRenderer tipArrow;
-    private List<LineRenderer> branchArrows = new List<LineRenderer>();
 
     // -------------------------------------------------------------------------
     // Init
@@ -54,7 +51,6 @@ public class GuidewireSimulator : MonoBehaviour
     void Start()
     {
         _startLocalRotation = wireTip.localRotation;
-        CreateArrows();
         InvokeRepeating(nameof(CheckLoader), 0.5f, 0.5f);
     }
 
@@ -89,40 +85,6 @@ public class GuidewireSimulator : MonoBehaviour
     }
 
     // -------------------------------------------------------------------------
-    // Arrows
-    // -------------------------------------------------------------------------
-
-    private void CreateArrows()
-    {
-        tipArrow = CreateArrow("TipArrow", Color.white);
-        for (int i = 0; i < 4; i++)
-            branchArrows.Add(CreateArrow("BranchArrow_" + i, Color.yellow));
-        HideAllArrows();
-    }
-
-    private LineRenderer CreateArrow(string name, Color color)
-    {
-        var go = new GameObject(name);
-        go.transform.SetParent(wireTip);
-        var lr = go.AddComponent<LineRenderer>();
-        lr.positionCount = 2;
-        lr.startWidth = arrowWidth;
-        lr.endWidth = arrowWidth * 0.1f;
-        lr.useWorldSpace = true;
-        lr.material = new Material(Shader.Find("Sprites/Default"));
-        lr.startColor = color;
-        lr.endColor = color;
-        lr.enabled = false;
-        return lr;
-    }
-
-    private void HideAllArrows()
-    {
-        if (tipArrow != null) tipArrow.enabled = false;
-        foreach (var lr in branchArrows) lr.enabled = false;
-    }
-
-    // -------------------------------------------------------------------------
     // Update
     // -------------------------------------------------------------------------
 
@@ -133,15 +95,9 @@ public class GuidewireSimulator : MonoBehaviour
         HandleTwist();
 
         if (isAtFork)
-        {
-            UpdateForkVisualizer();
             EvaluateForkChoice();
-        }
         else
-        {
-            HideAllArrows();
             HandleMovement();
-        }
     }
 
     // -------------------------------------------------------------------------
@@ -272,43 +228,6 @@ public class GuidewireSimulator : MonoBehaviour
     }
 
     // -------------------------------------------------------------------------
-    // Fork visualizer
-    // -------------------------------------------------------------------------
-
-    private void UpdateForkVisualizer()
-    {
-        var tipBase = wireTip.position;
-        var tipProjected = Vector3.ProjectOnPlane(wireTip.up, incomingDir).normalized;
-
-        tipArrow.enabled = true;
-        tipArrow.SetPosition(0, tipBase);
-        tipArrow.SetPosition(1, tipBase + tipProjected * arrowLength);
-
-        for (int i = 0; i < branchArrows.Count; i++)
-        {
-            if (i < currentNode.branches.Count)
-            {
-                var branch = currentNode.branches[i];
-                var branchWorld = centerlineLoader.GetNodeWorldPosition(branch);
-                var branchDir = (branchWorld - tipBase).normalized;
-                var branchProj = Vector3.ProjectOnPlane(branchDir, incomingDir).normalized;
-                float angle = Vector3.Angle(tipProjected, branchProj);
-                Color c = angle <= alignmentTolerance ? Color.green : Color.yellow;
-
-                branchArrows[i].startColor = c;
-                branchArrows[i].endColor = c;
-                branchArrows[i].enabled = true;
-                branchArrows[i].SetPosition(0, tipBase);
-                branchArrows[i].SetPosition(1, tipBase + branchProj * arrowLength);
-            }
-            else
-            {
-                branchArrows[i].enabled = false;
-            }
-        }
-    }
-
-    // -------------------------------------------------------------------------
     // Fork choice
     // -------------------------------------------------------------------------
 
@@ -318,6 +237,7 @@ public class GuidewireSimulator : MonoBehaviour
         var tipProjected = Vector3.ProjectOnPlane(wireTip.up, incomingDir).normalized;
 
         CenterlineNode bestBranch = null;
+        Vector3 bestProj = Vector3.zero;
         float bestAngle = float.MaxValue;
 
         foreach (var branch in currentNode.branches)
@@ -327,10 +247,11 @@ public class GuidewireSimulator : MonoBehaviour
             var branchProj = Vector3.ProjectOnPlane(branchDir, incomingDir).normalized;
             float angle = Vector3.Angle(tipProjected, branchProj);
 
-            if (angle < bestAngle) { bestAngle = angle; bestBranch = branch; }
+            if (angle < bestAngle) { bestAngle = angle; bestBranch = branch; bestProj = branchProj; }
         }
 
         _bestBranchAngle = bestAngle;
+        if (bestBranch != null) UpdateTwistHint(tipProjected, bestProj, bestAngle);
 
         float signal = Mathf.Clamp01(1f - (bestAngle / 180f));
         HapticManager.Instance?.StartContinuous(signal * 0.5f);
@@ -342,17 +263,35 @@ public class GuidewireSimulator : MonoBehaviour
             nextNode = bestBranch;
             isAtFork = false;
             _bestBranchAngle = 180f;
-            HideAllArrows();
+            TwistDirection = 0;
             HapticManager.Instance?.StopContinuous();
             Debug.Log($"[Guidewire] Branch unlocked at {bestAngle:F1}°.");
         }
     }
+
+    // The twist axis is not the vessel axis, so the sign of BranchSignedAngle does not
+    // say which way to twist. Try a small twist and see if the gap shrinks.
+    private void UpdateTwistHint(Vector3 tipProjected, Vector3 branchProj, float angle)
+    {
+        BranchSignedAngle = Vector3.SignedAngle(tipProjected, branchProj, incomingDir);
+
+        if (angle <= alignmentTolerance) { TwistDirection = 0; return; }
+
+        var upPlus = Quaternion.AngleAxis(5f, wireTip.forward) * wireTip.up;
+        var plusProjected = Vector3.ProjectOnPlane(upPlus, incomingDir).normalized;
+        float anglePlus = Vector3.Angle(plusProjected, branchProj);
+
+        // HandleTwist rotates by -stick.x, so a positive twist is stick left.
+        TwistDirection = anglePlus < angle ? -1 : 1;
+    }
+
     // Used by Play Again. Clears fork state and tip twist, then goes back to the entry.
     public void ResetGuidewire()
     {
         isAtFork = false;
         _bestBranchAngle = 180f;
-        HideAllArrows();
+        TwistDirection = 0;
+        BranchSignedAngle = 0f;
         wireTip.localRotation = _startLocalRotation;
         HapticManager.Instance?.StopAll();
         InitializeGuidewire();
