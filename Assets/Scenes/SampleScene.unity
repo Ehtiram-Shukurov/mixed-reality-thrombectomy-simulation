@@ -22300,11 +22300,11 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 13fd1bdaf34674040a19084c6f8ba559, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::UIFollower
-  authoredEyeHeight: 1.6
-  raise: 0.25
-  distanceTolerance: 0.25
-  smoothTime: 0.4
+  viewOffset: {x: -0.28, y: 0.12, z: 0.62}
+  distanceTolerance: 0.3
+  smoothTime: 0.5
   turnSpeed: 4
+  freezeHandDistance: 0.25
 --- !u!1 &1393655919
 GameObject:
   m_ObjectHideFlags: 0
@@ -29968,11 +29968,11 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 13fd1bdaf34674040a19084c6f8ba559, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::UIFollower
-  authoredEyeHeight: 1.6
-  raise: 0.25
-  distanceTolerance: 0.25
-  smoothTime: 0.4
+  viewOffset: {x: -0.28, y: -0.22, z: 0.55}
+  distanceTolerance: 0.3
+  smoothTime: 0.5
   turnSpeed: 4
+  freezeHandDistance: 0.25
 --- !u!1 &1811790792
 GameObject:
   m_ObjectHideFlags: 0

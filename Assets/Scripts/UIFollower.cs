@@ -1,22 +1,26 @@
 using UnityEngine;
+using UnityEngine.UI;
 
-// Keeps a world-space panel near the user. It keeps the panel's authored layout
-// (left/right and distance from the rig origin) but follows head height and turn.
-// It waits until the panel is far from where it should be, then glides back, so
-// the panel stays put while you poke it.
+// Keeps a world-space panel in front of the user, facing them.
+// The offset is for the panel's visual center, measured from the head: x right, y up, z forward.
+// The panel waits until it is far from that spot, then glides back. It does not move while
+// a hand is close to it, so you can reach it.
 public class UIFollower : MonoBehaviour
 {
-    [Tooltip("Eye height the panels were placed for in the scene, in meters.")]
-    public float authoredEyeHeight = 1.6f;
-    [Tooltip("Extra height added to the authored layout, in meters.")]
-    public float raise = 0.25f;
-    [Tooltip("How far the panel can be from its spot before it moves.")]
-    public float distanceTolerance = 0.25f;
-    public float smoothTime = 0.4f;
-    public float turnSpeed = 4f;
+    [Header("Placement (meters, relative to the head)")]
+    [Tooltip("Where the center of the panel sits: x right, y up, z forward.")]
+    public Vector3 viewOffset = new Vector3(-0.28f, -0.2f, 0.55f);
 
-    private Transform _head;
-    private Vector3 _offset;   // x, z in the rig frame, y relative to head height
+    [Header("Follow")]
+    [Tooltip("How far the panel can be from its spot before it moves.")]
+    public float distanceTolerance = 0.3f;
+    public float smoothTime = 0.5f;
+    public float turnSpeed = 4f;
+    [Tooltip("The panel stays put while a hand is this close to it.")]
+    public float freezeHandDistance = 0.25f;
+
+    private Transform _head, _leftHand, _rightHand;
+    private Vector3 _centerInRootFrame; // panel center, as an offset from this object in its own rotation
     private Vector3 _velocity;
     private bool _ready;
     private bool _moving;
@@ -31,46 +35,89 @@ public class UIFollower : MonoBehaviour
         }
 
         _head = rig.centerEyeAnchor;
-        Vector3 local = rig.transform.InverseTransformPoint(transform.position);
-        _offset = new Vector3(local.x, transform.position.y - authoredEyeHeight + raise, local.z);
+        _leftHand = rig.leftHandAnchor;
+        _rightHand = rig.rightHandAnchor;
+        _centerInRootFrame = MeasureCenter();
     }
 
-    private Vector3 TargetPosition()
+    // The root object is not where the panel looks centered (the menu root sits to one side),
+    // so find the middle of everything that is drawn.
+    private Vector3 MeasureCenter()
+    {
+        var corners = new Vector3[4];
+        bool any = false;
+        var bounds = new Bounds(transform.position, Vector3.zero);
+        foreach (var g in GetComponentsInChildren<Graphic>(false))
+        {
+            if (!g.isActiveAndEnabled) continue;
+            g.rectTransform.GetWorldCorners(corners);
+            foreach (var c in corners)
+            {
+                if (!any) { bounds = new Bounds(c, Vector3.zero); any = true; }
+                else bounds.Encapsulate(c);
+            }
+        }
+        if (!any) return Vector3.zero;
+        return Quaternion.Inverse(transform.rotation) * (bounds.center - transform.position);
+    }
+
+    private Vector3 DesiredCenter()
     {
         var yaw = Quaternion.Euler(0f, _head.eulerAngles.y, 0f);
-        Vector3 flat = yaw * new Vector3(_offset.x, 0f, _offset.z);
-        return new Vector3(_head.position.x, _head.position.y + _offset.y, _head.position.z) + flat;
+        return _head.position + yaw * viewOffset;
+    }
+
+    private Quaternion Facing(Vector3 center)
+    {
+        Vector3 away = center - _head.position;
+        away.y = 0f;
+        return away.sqrMagnitude > 0.0001f ? Quaternion.LookRotation(away) : transform.rotation;
+    }
+
+    private bool HandNear()
+    {
+        Vector3 center = transform.position + transform.rotation * _centerInRootFrame;
+        if (_leftHand != null && Vector3.Distance(_leftHand.position, center) < freezeHandDistance) return true;
+        if (_rightHand != null && Vector3.Distance(_rightHand.position, center) < freezeHandDistance) return true;
+        return false;
     }
 
     void LateUpdate()
     {
         if (_head == null) return;
 
+        Vector3 center = DesiredCenter();
+        Quaternion face = Facing(center);
+        Vector3 targetRoot = center - face * _centerInRootFrame;
+
         // No tracking yet (or no headset in the editor): leave the panel where it is.
         if (!_ready)
         {
             if (_head.position.y < 0.5f) return;
-            transform.position = TargetPosition();
+            // Measure now, not in Start: the grid layout has settled by this point.
+            _centerInRootFrame = MeasureCenter();
+            targetRoot = center - face * _centerInRootFrame;
+            transform.SetPositionAndRotation(targetRoot, face);
             _ready = true;
+            return;
         }
 
-        Vector3 target = TargetPosition();
-        if (!_moving && Vector3.Distance(transform.position, target) > distanceTolerance)
+        if (HandNear())
+        {
+            _moving = false;
+            _velocity = Vector3.zero;
+            return;
+        }
+
+        if (!_moving && Vector3.Distance(transform.position, targetRoot) > distanceTolerance)
             _moving = true;
 
         if (_moving)
         {
-            transform.position = Vector3.SmoothDamp(transform.position, target, ref _velocity, smoothTime);
-            if (Vector3.Distance(transform.position, target) < 0.02f) _moving = false;
+            transform.position = Vector3.SmoothDamp(transform.position, targetRoot, ref _velocity, smoothTime);
+            if (Vector3.Distance(transform.position, targetRoot) < 0.02f) _moving = false;
         }
 
-        // Face the user, turning only around the vertical axis.
-        Vector3 away = transform.position - _head.position;
-        away.y = 0f;
-        if (away.sqrMagnitude > 0.0001f)
-        {
-            var look = Quaternion.LookRotation(away);
-            transform.rotation = Quaternion.Slerp(transform.rotation, look, Time.deltaTime * turnSpeed);
-        }
+        transform.rotation = Quaternion.Slerp(transform.rotation, face, Time.unscaledDeltaTime * turnSpeed);
     }
 }
