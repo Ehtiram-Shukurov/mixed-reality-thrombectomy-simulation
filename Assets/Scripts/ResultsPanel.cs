@@ -1,54 +1,53 @@
-//using UnityEngine;
-//using UnityEngine.UI;
-//using TMPro;
+using UnityEngine;
+using UnityEngine.UI;
+using TMPro;
 
-//// Handles the results screen display and Play Again reset.
-//public class ResultsPanel : MonoBehaviour
-//{
-//    [Header("Score Fields")]
-//    public TextMeshProUGUI totalTimeText;
-//    public TextMeshProUGUI radiationText;
-//    public TextMeshProUGUI safetyScoreText;
+// Results screen and the Play Again reset.
+// SimulationManager hides this panel at start and shows it in Phase 3.
+public class ResultsPanel : MonoBehaviour
+{
+    [Header("Score Fields")]
+    public TextMeshProUGUI totalTimeText;
+    public TextMeshProUGUI radiationText;   // shows fluoroscopy time
+    public TextMeshProUGUI safetyScoreText; // shows the extraction rating
 
-//    [Header("References")]
-//    public SimulationManager simManager;
-//    public GuidewireSimulator guidewireSimulator;
-//    public ClotTarget clotTarget;
+    [Header("References")]
+    public SimulationManager simManager;
+    public GuidewireSimulator guidewireSimulator;
+    public ClotTarget clotTarget;
 
-//    void Start()
-//    {
-//        gameObject.SetActive(false);
-//    }
-//    public void OnPlayAgainToggle(bool isOn)
-//    {
-//        if (!isOn) return;
-//        OnPlayAgain();
-//    }
+    // Hooked to the Play Again toggle (On Value Changed, dynamic bool)
+    public void OnPlayAgainToggle(bool isOn)
+    {
+        if (!isOn) return;
+        OnPlayAgain();
+    }
 
-//    // Called by SimulationManager.ShowResults() — colors scores by performance
-//    public void ShowResults(float totalTime, float radiation, float safety)
-//    {
-//        int min = Mathf.FloorToInt(totalTime / 60f);
-//        int sec = Mathf.FloorToInt(totalTime % 60f);
+    public void ShowResults(float totalTime, float fluoroSeconds, string rating, Color ratingColor)
+    {
+        int min = Mathf.FloorToInt(totalTime / 60f);
+        int sec = Mathf.FloorToInt(totalTime % 60f);
 
-//        if (totalTimeText != null) totalTimeText.text = $"Total Time\n{min:00}:{sec:00}";
-//        if (radiationText != null) radiationText.text = $"Radiation\n{radiation:F1}s";
-//        if (safetyScoreText != null)
-//        {
-//            safetyScoreText.text = $"Extraction Safety\n{safety:F0}/100";
-//            safetyScoreText.color = safety >= 80f ? Color.green
-//                                  : safety >= 50f ? Color.yellow
-//                                  : Color.red;
-//        }
+        if (totalTimeText != null) totalTimeText.text = $"Total time: {min:00}:{sec:00}";
+        if (radiationText != null) radiationText.text = $"Fluoroscopy: {fluoroSeconds:F1} s";
+        if (safetyScoreText != null)
+        {
+            safetyScoreText.text = $"Extraction: {rating}";
+            safetyScoreText.color = ratingColor;
+        }
 
-//        gameObject.SetActive(true);
-//    }
+        // Toggle stays on after a click. Reset it so Play Again works every time.
+        var toggle = GetComponentInChildren<Toggle>(true);
+        if (toggle != null) toggle.SetIsOnWithoutNotify(false);
 
-//    private void OnPlayAgain()
-//    {
-//        gameObject.SetActive(false);
-//        clotTarget?.ResetClot();
-//        guidewireSimulator?.ResetGuidewire();
-//        simManager?.StartPhase1();
-//    }
-//}
+        gameObject.SetActive(true);
+    }
+
+    private void OnPlayAgain()
+    {
+        gameObject.SetActive(false);
+        clotTarget?.ResetClot();
+        guidewireSimulator?.ResetGuidewire();
+        simManager?.StartPhase1();
+    }
+}
