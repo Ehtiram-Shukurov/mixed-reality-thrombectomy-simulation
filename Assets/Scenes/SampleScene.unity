@@ -22297,7 +22297,6 @@ GameObject:
   - component: {fileID: 1380986511}
   - component: {fileID: 1380986512}
   - component: {fileID: 1380986513}
-  - component: {fileID: 1380986514}
   m_Layer: 3
   m_Name: Canvas
   m_TagString: Untagged
@@ -22374,7 +22373,7 @@ RectTransform:
   m_LocalEulerAnglesHint: {x: 0, y: -41.885, z: 0}
   m_AnchorMin: {x: 0, y: 0}
   m_AnchorMax: {x: 0, y: 0}
-  m_AnchoredPosition: {x: -0.555, y: 1.4}
+  m_AnchoredPosition: {x: 0.80083734, y: 1.6386827}
   m_SizeDelta: {x: 1618, y: 771}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!114 &1380986511
@@ -22438,23 +22437,6 @@ MonoBehaviour:
   overlapMask: 0
   compositionMode: 1
   _overlayEnabled: 1
---- !u!114 &1380986514
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1380986505}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 13fd1bdaf34674040a19084c6f8ba559, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::UIFollower
-  viewOffset: {x: -0.13, y: 0.12, z: 0.62}
-  distanceTolerance: 0.4
-  smoothTime: 0.9
-  turnSpeed: 2
-  freezeHandDistance: 0.25
 --- !u!1 &1393655919
 GameObject:
   m_ObjectHideFlags: 0
@@ -23979,9 +23961,6 @@ PrefabInstance:
       insertIndex: 0
       addedObject: {fileID: 287545267}
     m_AddedComponents:
-    - targetCorrespondingSourceObject: {fileID: 6819193313045645188, guid: d20e5167c9cb0324ca767fde91f2f10f, type: 3}
-      insertIndex: -1
-      addedObject: {fileID: 1811645739}
     - targetCorrespondingSourceObject: {fileID: 6819193312115910601, guid: d20e5167c9cb0324ca767fde91f2f10f, type: 3}
       insertIndex: -1
       addedObject: {fileID: 281695615}
@@ -24885,6 +24864,60 @@ CanvasRenderer:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1459103204}
   m_CullTransparentMesh: 1
+--- !u!1 &1460147475
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 1460147477}
+  - component: {fileID: 1460147476}
+  m_Layer: 0
+  m_Name: PanelGroup
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!114 &1460147476
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1460147475}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 7efcfe14973ab1e4b8e40da49fdbbd72, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::UIGroupFollower
+  panels:
+  - root: {fileID: 1811645740}
+    offset: {x: -0.13, y: -0.2, z: 0.58}
+  - root: {fileID: 1380986509}
+    offset: {x: -0.13, y: 0.045, z: 0.58}
+  yawTolerance: 30
+  distanceTolerance: 0.35
+  yawSmoothTime: 0.8
+  positionSmoothTime: 0.8
+  freezeHandDistance: 0.25
+--- !u!4 &1460147477
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1460147475}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 0}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &1462062438
 GameObject:
   m_ObjectHideFlags: 0
@@ -25204,7 +25237,7 @@ MonoBehaviour:
   m_spriteAsset: {fileID: 0}
   m_tintAllSprites: 0
   m_StyleSheet: {fileID: 0}
-  m_TextStyleHashCode: 0
+  m_TextStyleHashCode: -1183493901
   m_overrideHtmlColors: 0
   m_faceColor:
     serializedVersion: 2
@@ -30401,28 +30434,11 @@ CanvasRenderer:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1788013430}
   m_CullTransparentMesh: 1
---- !u!1 &1811645734 stripped
-GameObject:
-  m_CorrespondingSourceObject: {fileID: 6819193313045645188, guid: d20e5167c9cb0324ca767fde91f2f10f, type: 3}
+--- !u!4 &1811645740 stripped
+Transform:
+  m_CorrespondingSourceObject: {fileID: 6819193313045645197, guid: d20e5167c9cb0324ca767fde91f2f10f, type: 3}
   m_PrefabInstance: {fileID: 1418674821}
   m_PrefabAsset: {fileID: 0}
---- !u!114 &1811645739
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1811645734}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 13fd1bdaf34674040a19084c6f8ba559, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::UIFollower
-  viewOffset: {x: -0.13, y: -0.22, z: 0.55}
-  distanceTolerance: 0.4
-  smoothTime: 0.9
-  turnSpeed: 2
-  freezeHandDistance: 0.25
 --- !u!1 &1811790792
 GameObject:
   m_ObjectHideFlags: 0
@@ -33552,7 +33568,7 @@ Canvas:
   m_OverridePixelPerfect: 0
   m_SortingBucketNormalizedSize: 0
   m_VertexColorAlwaysGammaSpace: 0
-  m_AdditionalShaderChannelsFlag: 0
+  m_AdditionalShaderChannelsFlag: 25
   m_UpdateRectTransformForStandalone: 0
   m_SortingLayerID: 0
   m_SortingOrder: 0
@@ -35316,3 +35332,4 @@ SceneRoots:
   - {fileID: 1279756908}
   - {fileID: 896449793}
   - {fileID: 1983869831}
+  - {fileID: 1460147477}
