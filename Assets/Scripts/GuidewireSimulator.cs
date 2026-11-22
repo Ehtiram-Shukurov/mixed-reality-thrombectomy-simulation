@@ -30,6 +30,7 @@ public class GuidewireSimulator : MonoBehaviour
     private Vector3 incomingDir;
 
     private float _bestBranchAngle = 180f;
+    private Quaternion _startLocalRotation;
 
     // Public properties for GuidewireUI and CatheterSimulator
     public bool IsReady => isReady;
@@ -52,6 +53,7 @@ public class GuidewireSimulator : MonoBehaviour
 
     void Start()
     {
+        _startLocalRotation = wireTip.localRotation;
         CreateArrows();
         InvokeRepeating(nameof(CheckLoader), 0.5f, 0.5f);
     }
@@ -345,5 +347,14 @@ public class GuidewireSimulator : MonoBehaviour
             Debug.Log($"[Guidewire] Branch unlocked at {bestAngle:F1}°.");
         }
     }
-    public void ResetGuidewire() => InitializeGuidewire();
+    // Used by Play Again. Clears fork state and tip twist, then goes back to the entry.
+    public void ResetGuidewire()
+    {
+        isAtFork = false;
+        _bestBranchAngle = 180f;
+        HideAllArrows();
+        wireTip.localRotation = _startLocalRotation;
+        HapticManager.Instance?.StopAll();
+        InitializeGuidewire();
+    }
 }

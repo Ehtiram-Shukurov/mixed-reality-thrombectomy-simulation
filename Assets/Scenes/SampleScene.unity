@@ -18659,12 +18659,12 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 2b4e12f1ace1601418f9942c54397129, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::ResultsPanel
-  totalTimeText: {fileID: 0}
-  radiationText: {fileID: 0}
-  safetyScoreText: {fileID: 0}
-  simManager: {fileID: 0}
-  guidewireSimulator: {fileID: 0}
-  clotTarget: {fileID: 0}
+  totalTimeText: {fileID: 150556875}
+  radiationText: {fileID: 209641779}
+  safetyScoreText: {fileID: 1374606249}
+  simManager: {fileID: 1634681679}
+  guidewireSimulator: {fileID: 1269141805}
+  clotTarget: {fileID: 300974650}
 --- !u!1 &1333250163
 GameObject:
   m_ObjectHideFlags: 0
@@ -23814,6 +23814,7 @@ MonoBehaviour:
   guidewireUI: {fileID: 281695620}
   catheterSimulator: {fileID: 1634681680}
   clotTarget: {fileID: 300974650}
+  resultsPanel: {fileID: 1333047835}
 --- !u!114 &1634681680
 MonoBehaviour:
   m_ObjectHideFlags: 0

@@ -24,7 +24,7 @@ public class SimulationManager : MonoBehaviour
     public ClotTarget clotTarget;
 
     [Header("UI")]
-    //public ResultsPanel resultsPanel;
+    public ResultsPanel resultsPanel;
 
     public SimPhase CurrentPhase { get; private set; } = SimPhase.Idle;
 
@@ -35,7 +35,7 @@ public class SimulationManager : MonoBehaviour
 
     void Start()
     {
-        //if (resultsPanel != null) resultsPanel.gameObject.SetActive(false);
+        if (resultsPanel != null) resultsPanel.gameObject.SetActive(false);
         EnterPhase(SimPhase.Phase1_Navigation);
     }
 
@@ -61,6 +61,7 @@ public class SimulationManager : MonoBehaviour
                 _stentDeployed = false;
                 _extractionPenalty = 0;
                 fluoroController?.ResetTimer();
+                if (resultsPanel != null) resultsPanel.gameObject.SetActive(false);
                 SetGuidewire(true);
                 Debug.Log("[SimManager] Phase 1 — Navigate guidewire to clot.");
                 break;
@@ -128,8 +129,17 @@ public class SimulationManager : MonoBehaviour
     private void ShowResults()
     {
         float exposure = fluoroController != null ? fluoroController.TotalExposureTime : 0f;
-        float safety = Mathf.Clamp(100f - _extractionPenalty, 0f, 100f);
-        //resultsPanel?.ShowResults(_totalTime, exposure, safety);
+        string rating = ExtractionRating(out Color color);
+        resultsPanel?.ShowResults(_totalTime, exposure, rating, color);
+    }
+
+    // Each speed warning adds 5 points. Cutoffs are a guess, not validated.
+    private string ExtractionRating(out Color color)
+    {
+        if (_extractionPenalty == 0) { color = Color.green; return "Careful"; }
+        if (_extractionPenalty <= 10) { color = Color.yellow; return "Good"; }
+        color = Color.red;
+        return "Too Fast";
     }
 
     private void SetGuidewire(bool active)
