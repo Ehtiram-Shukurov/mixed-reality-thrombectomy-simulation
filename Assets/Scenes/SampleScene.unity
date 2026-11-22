@@ -988,6 +988,7 @@ GameObject:
   - component: {fileID: 72244410}
   - component: {fileID: 72244409}
   - component: {fileID: 72244411}
+  - component: {fileID: 72244412}
   m_Layer: 0
   m_Name: dicomBody
   m_TagString: Untagged
@@ -1227,6 +1228,21 @@ MonoBehaviour:
         Min: 0.5
         Max: 1.5
   _resetScaleResponsivenessOnConstraintOvershoot: 0
+--- !u!114 &72244412
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 72244403}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: b89ab50e57317cf45aa4d293cfeb33f5, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::VolumeFrame
+  arm: 0.14
+  thickness: 0.0025
+  color: {r: 1, g: 1, b: 1, a: 0.35}
 --- !u!1 &73474149
 GameObject:
   m_ObjectHideFlags: 0
@@ -6044,6 +6060,7 @@ GameObject:
   - component: {fileID: 356483577}
   - component: {fileID: 356483576}
   - component: {fileID: 356483575}
+  - component: {fileID: 356483579}
   m_Layer: 0
   m_Name: GuidewireTrail
   m_TagString: Untagged
@@ -6090,7 +6107,7 @@ MeshRenderer:
   m_RenderingLayerMask: 1
   m_RendererPriority: 0
   m_Materials:
-  - {fileID: 2100000, guid: 696a6f4f43ee43e4d8543aef3de216ed, type: 2}
+  - {fileID: 2100000, guid: 730e50f10bf52494cbf91c973303c043, type: 2}
   m_StaticBatchInfo:
     firstSubMesh: 0
     subMeshCount: 0
@@ -6137,6 +6154,20 @@ Transform:
   m_Children: []
   m_Father: {fileID: 72244407}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &356483579
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 356483574}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: bbd9668422c78394db5ca7f6000060d7, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::TrailFlow
+  pointsPerPulse: 70
+  pulsesPerSecond: 0.6
 --- !u!1 &358499019
 GameObject:
   m_ObjectHideFlags: 0
@@ -19994,6 +20025,7 @@ GameObject:
   - component: {fileID: 1269141807}
   - component: {fileID: 1269141806}
   - component: {fileID: 1269141809}
+  - component: {fileID: 1269141810}
   m_Layer: 0
   m_Name: CatheterTip
   m_TagString: Untagged
@@ -20230,6 +20262,24 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::FluoroController
   dicomLoader: {fileID: 72244408}
   fluoroRenderMode: 6
+--- !u!114 &1269141810
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1269141801}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 2fcd1a299c1b76346b7f2388b97021a2, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::TipGlow
+  size: 0.035
+  pulseHz: 1.2
+  normalColor: {r: 0.3, g: 0.9, b: 1, a: 0.9}
+  forkColor: {r: 0.98, g: 0.75, b: 0.14, a: 0.9}
+  deadEndColor: {r: 0.97, g: 0.5, b: 0.42, a: 0.9}
+  goodColor: {r: 0.3, g: 0.85, b: 0.5, a: 0.9}
 --- !u!1 &1270253609
 GameObject:
   m_ObjectHideFlags: 0
@@ -21989,6 +22039,53 @@ Transform:
   - {fileID: 1264167214}
   - {fileID: 1840261679}
   m_Father: {fileID: 990835597}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!1 &1364706254
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 1364706256}
+  - component: {fileID: 1364706255}
+  m_Layer: 0
+  m_Name: ForkMarker
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!114 &1364706255
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1364706254}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 85f2430e8e47dc24c88b80760b2e0d41, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::ForkMarker
+  ringSprite: {fileID: 21300000, guid: 2fd91e7b8951c5c4993100aa13b5c5a7, type: 3}
+  size: 0.04
+  pulseHz: 0.8
+--- !u!4 &1364706256
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1364706254}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &1366407086
 GameObject:
@@ -35333,3 +35430,4 @@ SceneRoots:
   - {fileID: 896449793}
   - {fileID: 1983869831}
   - {fileID: 1460147477}
+  - {fileID: 1364706256}
