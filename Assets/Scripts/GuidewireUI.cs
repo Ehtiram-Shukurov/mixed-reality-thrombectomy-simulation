@@ -1,4 +1,5 @@
 ﻿using UnityEngine;
+using UnityEngine.UI;
 using TMPro;
 
 public class GuidewireUI : MonoBehaviour
@@ -12,6 +13,14 @@ public class GuidewireUI : MonoBehaviour
     public TextMeshProUGUI fluoroText;  
     public TextMeshProUGUI forkText;
     public TextMeshProUGUI instructionText; // one line of help for the current phase
+
+    [Header("Badges (optional rounded backgrounds)")]
+    public Image fluoroBadge;
+    public Image forkBadge;
+
+    private static readonly Color Dark = new Color(0.04f, 0.08f, 0.09f, 1f);
+    private static readonly Color Amber = new Color(0.98f, 0.75f, 0.14f, 0.95f);
+    private static readonly Color Green = new Color(0.30f, 0.85f, 0.50f, 0.95f);
 
     void Update()
     {
@@ -55,40 +64,39 @@ public class GuidewireUI : MonoBehaviour
     {
         if (fluoroText == null || fluoroController == null) return;
 
-        if (fluoroController.IsActive)
-        {
-            fluoroText.gameObject.SetActive(true);
-            fluoroText.color = Color.yellow;
-            fluoroText.text = $"☢ FLUORO {fluoroController.TotalExposureTime:F1}s";
-        }
-        else
-        {
-            fluoroText.gameObject.SetActive(false);
-        }
+        bool on = fluoroController.IsActive;
+        fluoroText.gameObject.SetActive(on);
+        if (fluoroBadge != null) fluoroBadge.gameObject.SetActive(on);
+        if (!on) return;
+
+        fluoroText.color = fluoroBadge != null ? Dark : Color.yellow;
+        if (fluoroBadge != null) fluoroBadge.color = Amber;
+        fluoroText.text = $"X-RAY ON  {fluoroController.TotalExposureTime:F1} s";
     }
 
     private void UpdateFork()
     {
         if (forkText == null || guidewireSimulator == null) return;
 
-        if (!guidewireSimulator.IsReady || !guidewireSimulator.IsAtFork)
-        {
-            forkText.gameObject.SetActive(false);
-            return;
-        }
-
-        forkText.gameObject.SetActive(true);
+        bool atFork = guidewireSimulator.IsReady && guidewireSimulator.IsAtFork;
+        forkText.gameObject.SetActive(atFork);
+        if (forkBadge != null) forkBadge.gameObject.SetActive(atFork);
+        if (!atFork) return;
 
         int dir = guidewireSimulator.TwistDirection;
+        bool hasBadge = forkBadge != null;
         if (dir == 0)
         {
-            forkText.color = Color.green;
-            forkText.text = "Aligned. Push forward.";
+            forkText.color = hasBadge ? Dark : Color.green;
+            if (hasBadge) forkBadge.color = Green;
+            forkText.text = "<size=70%>ALIGNED</size>\nPush forward";
         }
         else
         {
-            forkText.color = Color.yellow;
-            forkText.text = dir < 0 ? "Fork reached. Twist left <<" : "Fork reached. Twist right >>";
+            forkText.color = hasBadge ? Dark : Color.yellow;
+            if (hasBadge) forkBadge.color = Amber;
+            forkText.text = dir < 0 ? "<size=70%>FORK REACHED</size>\n<< Twist left"
+                                    : "<size=70%>FORK REACHED</size>\nTwist right >>";
         }
     }
 }
