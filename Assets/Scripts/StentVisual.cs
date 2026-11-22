@@ -1,12 +1,12 @@
 using UnityEngine;
 
-// A simple stent shown around the clot when it is deployed, then carried back with the catheter.
+// A simple mesh-style stent shown around the clot when it is deployed, then carried back with the catheter.
 public class StentVisual : MonoBehaviour
 {
-    public float length = 0.07f;
-    public float diameter = 0.028f;
+    public float length = 0.05f;
+    public float diameter = 0.024f;
     public float growSeconds = 0.4f;
-    public Color color = new Color(0.18f, 0.83f, 0.75f, 0.55f);
+    public Color color = new Color(0.18f, 0.83f, 0.75f, 0.9f);
 
     private CatheterSimulator _catheter;
     private GameObject _mesh;
@@ -18,10 +18,32 @@ public class StentVisual : MonoBehaviour
         _mesh.name = "StentMesh";
         Destroy(_mesh.GetComponent<Collider>());
         _mesh.transform.SetParent(transform, false);
+
         var mat = new Material(Shader.Find("Sprites/Default"));
         mat.color = color;
+        mat.mainTexture = MakeLattice();
+        mat.mainTextureScale = new Vector2(4f, 3f);
         _mesh.GetComponent<Renderer>().sharedMaterial = mat;
         _mesh.SetActive(false);
+    }
+
+    // A diamond grid: thin bright lines on a nearly clear background, so it reads like a stent mesh.
+    private static Texture2D MakeLattice()
+    {
+        const int size = 64;
+        var tex = new Texture2D(size, size, TextureFormat.RGBA32, false);
+        for (int y = 0; y < size; y++)
+        {
+            for (int x = 0; x < size; x++)
+            {
+                bool line = ((x + y) % 16) < 2 || ((x - y + size * 4) % 16) < 2;
+                tex.SetPixel(x, y, new Color(1f, 1f, 1f, line ? 1f : 0.08f));
+            }
+        }
+        tex.wrapMode = TextureWrapMode.Repeat;
+        tex.filterMode = FilterMode.Bilinear;
+        tex.Apply();
+        return tex;
     }
 
     void Start()

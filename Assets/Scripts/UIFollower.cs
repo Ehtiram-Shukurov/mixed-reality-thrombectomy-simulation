@@ -13,9 +13,9 @@ public class UIFollower : MonoBehaviour
 
     [Header("Follow")]
     [Tooltip("How far the panel can be from its spot before it moves.")]
-    public float distanceTolerance = 0.3f;
-    public float smoothTime = 0.5f;
-    public float turnSpeed = 4f;
+    public float distanceTolerance = 0.4f;
+    public float smoothTime = 0.9f;
+    public float turnSpeed = 2f;
     [Tooltip("The panel stays put while a hand is this close to it.")]
     public float freezeHandDistance = 0.25f;
 

@@ -79,6 +79,9 @@ public class SimulationManager : MonoBehaviour
             case SimPhase.Phase2b_StentDeploy: CheckStentButton(); break;
         }
 
+        // Controller shortcut for Play Again, in case the poke button is hard to reach.
+        if (CurrentPhase == SimPhase.Phase3_Results && SimInput.ConfirmPressed) RestartRun();
+
         HandleRestartHold();
     }
 
