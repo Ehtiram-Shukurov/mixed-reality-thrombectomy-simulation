@@ -10,12 +10,27 @@ public class ResultsPanel : MonoBehaviour
     public TextMeshProUGUI totalTimeText;
     public TextMeshProUGUI radiationText;   // shows fluoroscopy time
     public TextMeshProUGUI safetyScoreText; // shows the extraction rating
+    public TextMeshProUGUI routeText;       // wrong turns and dead ends
 
     [Header("References")]
     public SimulationManager simManager;
-    public GuidewireSimulator guidewireSimulator;
-    public ClotTarget clotTarget;
+    public GuidewireSimulator guidewireSimulator; // kept so the scene wiring stays valid
+    public ClotTarget clotTarget;                 // kept so the scene wiring stays valid
     public GameObject phaseCard; // hidden while the results show
+
+    private float _shownAt;
+
+    void OnEnable()
+    {
+        _shownAt = Time.unscaledTime;
+    }
+
+    void Update()
+    {
+        // Small pop-in.
+        float t = Mathf.Clamp01((Time.unscaledTime - _shownAt) / 0.25f);
+        transform.localScale = Vector3.one * Mathf.Lerp(0.9f, 1f, Mathf.SmoothStep(0f, 1f, t));
+    }
 
     // Hooked to the Play Again toggle (On Value Changed, dynamic bool)
     public void OnPlayAgainToggle(bool isOn)
@@ -24,7 +39,8 @@ public class ResultsPanel : MonoBehaviour
         OnPlayAgain();
     }
 
-    public void ShowResults(float totalTime, float fluoroSeconds, string rating, Color ratingColor)
+    public void ShowResults(float totalTime, float fluoroSeconds, string rating, Color ratingColor,
+                            int wrongTurns, int deadEnds)
     {
         int min = Mathf.FloorToInt(totalTime / 60f);
         int sec = Mathf.FloorToInt(totalTime % 60f);
@@ -36,6 +52,10 @@ public class ResultsPanel : MonoBehaviour
         {
             safetyScoreText.text = $"<color=#8B96A5>Extraction</color>   {rating}";
             safetyScoreText.color = ratingColor;
+        }
+        if (routeText != null)
+        {
+            routeText.text = $"<color=#8B96A5>Wrong turns</color> {wrongTurns}    <color=#8B96A5>Dead ends</color> {deadEnds}";
         }
 
         // The phase card sits in the same spot, so hide it while results show.
@@ -50,14 +70,13 @@ public class ResultsPanel : MonoBehaviour
 
     void OnDisable()
     {
+        transform.localScale = Vector3.one;
         if (phaseCard != null) phaseCard.SetActive(true);
     }
 
     private void OnPlayAgain()
     {
         gameObject.SetActive(false);
-        clotTarget?.ResetClot();
-        guidewireSimulator?.ResetGuidewire();
-        simManager?.StartPhase1();
+        simManager?.RestartRun();
     }
 }
