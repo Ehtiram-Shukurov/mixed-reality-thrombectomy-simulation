@@ -1,9 +1,32 @@
 using UnityEngine;
 
 // Centralized haptic controller. All scripts call this — nothing calls OVRInput directly.
+// Strengths and times are public so they can be tuned in the Inspector on the Quest.
 public class HapticManager : MonoBehaviour
 {
     public static HapticManager Instance { get; private set; }
+
+    [Header("Continuous hum (0 to 1)")]
+    public float movingHum = 0.1f;
+    public float advanceHum = 0.15f;
+    public float retractHum = 0.1f;
+
+    [Header("Fork")]
+    public float forkArrival = 0.4f;
+    public float forkArrivalTime = 0.15f;
+    [Tooltip("Hum strength at a perfect alignment. It scales up as the tip lines up.")]
+    public float forkAlignMax = 0.5f;
+
+    [Header("Events (strength, seconds)")]
+    public float clotContact = 0.8f;
+    public float clotContactTime = 0.3f;
+    public float speedWarning = 0.8f;
+    public float speedWarningTime = 0.2f;
+    public float deadEnd = 0.5f;
+    public float deadEndTime = 0.2f;
+    public float stentDeploy = 0.9f;
+    public float success = 1f;
+    public float successTime = 0.6f;
 
     private const OVRInput.Controller CTRL = OVRInput.Controller.RTouch;
 
@@ -30,6 +53,20 @@ public class HapticManager : MonoBehaviour
             }
         }
     }
+
+    // ---- Named events used by the simulation ----
+    public void Moving() => StartContinuous(movingHum);
+    public void Advancing() => StartContinuous(advanceHum);
+    public void Retracting() => StartContinuous(retractHum);
+    public void ForkAlignment(float signal) => StartContinuous(signal * forkAlignMax);
+    public void ForkArrived() { StopContinuous(); PulseOnce(forkArrival, forkArrivalTime); }
+    public void ClotContact() => PulseOnce(clotContact, clotContactTime);
+    public void SpeedWarning() => PulseOnce(speedWarning, speedWarningTime);
+    public void DeadEnd() => PulseOnce(deadEnd, deadEndTime);
+    public void StentDeployed() => DoublePulse(stentDeploy);
+    public void Success() => PulseOnce(success, successTime);
+
+    // ---- Building blocks ----
 
     // Single vibration burst
     public void PulseOnce(float strength, float duration)

@@ -4,6 +4,7 @@ using UnityEngine;
 
 // Places the clot randomly in the upper cerebral vessel region.
 // Invisible normally — visible as a dark filling defect in fluoro mode.
+// During extraction it rides on the catheter tip so you can see it come out.
 public class ClotTarget : MonoBehaviour
 {
     [Header("References")]
@@ -25,16 +26,24 @@ public class ClotTarget : MonoBehaviour
 
     private Renderer _renderer;
     private Material _clotMaterial;
+    private Material _capturedMaterial;
     private bool _isPlaced = false;
     private bool _fluoroWasActive = false;
+    private bool _captured = false;
+    private Transform _follow;
+    private GuidewireSimulator _guidewire;
+    private readonly HashSet<CenterlineNode> _path = new HashSet<CenterlineNode>();
 
     void Start()
     {
         _renderer = GetComponent<Renderer>();
         _clotMaterial = new Material(Shader.Find("Unlit/Color"));
         _clotMaterial.color = new Color(0.08f, 0.08f, 0.08f);
+        _capturedMaterial = new Material(_clotMaterial);
+        _capturedMaterial.color = new Color(0.55f, 0.10f, 0.10f);
         if (_renderer != null) _renderer.enabled = false;
 
+        _guidewire = FindFirstObjectByType<GuidewireSimulator>();
         StartCoroutine(WaitAndPlace());
     }
 
@@ -74,13 +83,41 @@ public class ClotTarget : MonoBehaviour
 
         ClotNode = candidates[Random.Range(0, candidates.Count)];
         transform.position = centerlineLoader.GetNodeWorldPosition(ClotNode);
+        BuildPath();
         _isPlaced = true;
 
         Debug.Log($"[ClotTarget] Placed at node {ClotNode.id} (Z={ClotNode.normalizedPosition.z:F3})");
     }
 
+    // Every node from the entry to the clot. A branch that is not in here is a wrong turn.
+    private void BuildPath()
+    {
+        _path.Clear();
+        var parent = new Dictionary<CenterlineNode, CenterlineNode>();
+        var queue = new Queue<CenterlineNode>();
+        queue.Enqueue(centerlineLoader.EntryNode);
+        parent[centerlineLoader.EntryNode] = null;
+        while (queue.Count > 0)
+        {
+            var n = queue.Dequeue();
+            foreach (var b in n.branches)
+                if (!parent.ContainsKey(b)) { parent[b] = n; queue.Enqueue(b); }
+        }
+
+        for (var n = ClotNode; n != null; n = parent.ContainsKey(n) ? parent[n] : null)
+            _path.Add(n);
+    }
+
+    public bool IsOnPath(CenterlineNode node) => node != null && _path.Contains(node);
+
     void Update()
     {
+        if (_captured && _follow != null)
+        {
+            transform.position = _follow.position;
+            return;
+        }
+
         if (!_isPlaced || IsReached) return;
         UpdateFluoroVisual();
         CheckDetection();
@@ -106,29 +143,48 @@ public class ClotTarget : MonoBehaviour
     private void CheckDetection()
     {
         if (wireTip == null) return;
-        if (Vector3.Distance(wireTip.position, transform.position) < detectionRadius)
+
+        // The wire has to arrive at the clot's own node, so a nearby parallel vessel
+        // cannot trigger it.
+        bool atNode = _guidewire == null || (_guidewire.CurrentNode == ClotNode && !_guidewire.IsAtFork);
+        if (atNode && Vector3.Distance(wireTip.position, transform.position) < detectionRadius)
         {
             IsReached = true;
-            _renderer.enabled = false;
+            if (_renderer != null) _renderer.enabled = false;
 
-            HapticManager.Instance?.PulseOnce(0.8f, 0.3f);
+            Feedback.ClotContact();
 
             Debug.Log("[ClotTarget] Clot reached.");
             simManager?.OnGuidewireReachedClot();
         }
     }
 
-    //void OnDrawGizmos()
-    //{
-    //    if (!_isPlaced) return;
-    //    Gizmos.color = Color.red;
-    //    Gizmos.DrawWireSphere(transform.position, detectionRadius);
-    //}
+    // Shows the clot on the catheter tip and moves it with the tip.
+    public void Capture(Transform tip)
+    {
+        _captured = true;
+        _follow = tip;
+        if (_renderer != null)
+        {
+            _renderer.material = _capturedMaterial;
+            _renderer.enabled = true;
+        }
+    }
+
+    public void Release()
+    {
+        _captured = false;
+        _follow = null;
+        if (_renderer != null) _renderer.enabled = false;
+    }
+
     public void ResetClot()
     {
         IsReached = false;
         _isPlaced = false;
         _fluoroWasActive = false;
+        _captured = false;
+        _follow = null;
         if (_renderer != null) _renderer.enabled = false;
         StartCoroutine(WaitAndPlace());
     }

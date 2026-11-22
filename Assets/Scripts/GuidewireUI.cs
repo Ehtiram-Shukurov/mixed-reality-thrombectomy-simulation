@@ -21,6 +21,7 @@ public class GuidewireUI : MonoBehaviour
     private static readonly Color Dark = new Color(0.04f, 0.08f, 0.09f, 1f);
     private static readonly Color Amber = new Color(0.98f, 0.75f, 0.14f, 0.95f);
     private static readonly Color Green = new Color(0.30f, 0.85f, 0.50f, 0.95f);
+    private static readonly Color Coral = new Color(0.97f, 0.50f, 0.42f, 0.95f);
 
     void Update()
     {
@@ -79,9 +80,19 @@ public class GuidewireUI : MonoBehaviour
         if (forkText == null || guidewireSimulator == null) return;
 
         bool atFork = guidewireSimulator.IsReady && guidewireSimulator.IsAtFork;
-        forkText.gameObject.SetActive(atFork);
-        if (forkBadge != null) forkBadge.gameObject.SetActive(atFork);
-        if (!atFork) return;
+        bool deadEnd = guidewireSimulator.IsReady && guidewireSimulator.IsAtDeadEnd;
+        bool show = atFork || deadEnd;
+        forkText.gameObject.SetActive(show);
+        if (forkBadge != null) forkBadge.gameObject.SetActive(show);
+        if (!show) return;
+
+        if (deadEnd)
+        {
+            forkText.color = forkBadge != null ? Dark : Color.red;
+            if (forkBadge != null) forkBadge.color = Coral;
+            forkText.text = "<size=70%>DEAD END</size>\nPull back";
+            return;
+        }
 
         int dir = guidewireSimulator.TwistDirection;
         bool hasBadge = forkBadge != null;

@@ -20,7 +20,7 @@ public class FluoroController : MonoBehaviour
 
     void Update()
     {
-        bool buttonHeld = OVRInput.Get(OVRInput.Button.One, OVRInput.Controller.RTouch);
+        bool buttonHeld = SimInput.FluoroHeld;
 
         if (buttonHeld && !IsActive)
             ActivateFluoro();

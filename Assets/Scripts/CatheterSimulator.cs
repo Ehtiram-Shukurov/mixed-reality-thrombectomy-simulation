@@ -27,6 +27,29 @@ public class CatheterSimulator : MonoBehaviour
     public bool IsAdvancing => _advancing;
     public bool IsRetracting => _retracting;
 
+    // World direction the catheter is pointing along the path. Used to orient the stent.
+    public Vector3 TipDirection
+    {
+        get
+        {
+            if (_trail == null || _trail.Count < 2) return Vector3.up;
+            int i = Mathf.Clamp(_trailIndex + 1, 1, _trail.Count - 1);
+            return (TrailWorldPos(i) - TrailWorldPos(i - 1)).normalized;
+        }
+    }
+
+    // Used by restart: stop moving and clear the body.
+    public void ResetCatheter()
+    {
+        _advancing = false;
+        _retracting = false;
+        _speedWarningActive = false;
+        _trail = null;
+        _trailIndex = 0;
+        if (catheterBodyRenderer != null) catheterBodyRenderer.Clear();
+        HapticManager.Instance?.StopContinuous();
+    }
+
     public void BeginAdvance()
     {
         _trail = new List<Vector3>(guidewireSimulator.TrailPoints);
@@ -64,14 +87,14 @@ public class CatheterSimulator : MonoBehaviour
 
     private void HandleAdvance()
     {
-        Vector2 stick = OVRInput.Get(OVRInput.Axis2D.PrimaryThumbstick, OVRInput.Controller.RTouch);
+        Vector2 stick = SimInput.Stick;
         if (stick.y < 0.1f)
         {
             HapticManager.Instance?.StopContinuous();
             return;
         }
 
-        HapticManager.Instance?.StartContinuous(0.15f);
+        HapticManager.Instance?.Advancing();
         float step = Mathf.Min(stick.y * maxAdvanceSpeed, maxAdvanceSpeed) * Time.deltaTime;
         MoveTipForward(step);
     }
@@ -101,7 +124,7 @@ public class CatheterSimulator : MonoBehaviour
 
     private void HandleRetraction()
     {
-        Vector2 stick = OVRInput.Get(OVRInput.Axis2D.PrimaryThumbstick, OVRInput.Controller.RTouch);
+        Vector2 stick = SimInput.Stick;
         float input = -stick.y;
 
         if (input < 0.1f)
@@ -119,7 +142,7 @@ public class CatheterSimulator : MonoBehaviour
             if (!_speedWarningActive)
             {
                 _speedWarningActive = true;
-                HapticManager.Instance?.PulseOnce(0.8f, 0.2f);
+                Feedback.SpeedWarning();
                 simManager?.AddExtractionPenalty(speedPenaltyPoints);
                 Debug.Log("[CatheterSim] Speed warning.");
             }
@@ -127,7 +150,7 @@ public class CatheterSimulator : MonoBehaviour
         else
         {
             _speedWarningActive = false;
-            HapticManager.Instance?.StartContinuous(0.1f);
+            HapticManager.Instance?.Retracting();
         }
 
         MoveTipBackward(actual * Time.deltaTime);

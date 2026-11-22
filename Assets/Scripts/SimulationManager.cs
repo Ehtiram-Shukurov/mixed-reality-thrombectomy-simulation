@@ -1,5 +1,7 @@
+using System;
+using System.Globalization;
+using System.IO;
 using UnityEngine;
-using TMPro;
 
 // Master state machine. Controls phase transitions and system activation.
 public class SimulationManager : MonoBehaviour
@@ -26,17 +28,46 @@ public class SimulationManager : MonoBehaviour
     [Header("UI")]
     public ResultsPanel resultsPanel;
 
+    [Header("Restart")]
+    [Tooltip("Hold left Y this long to restart the run.")]
+    public float restartHoldSeconds = 2f;
+
     public SimPhase CurrentPhase { get; private set; } = SimPhase.Idle;
+    // 0 to 1 while left Y is held. Shown on the phase card.
+    public float RestartProgress { get; private set; }
 
     private float _totalTime = 0f;
     private bool _timerRunning = false;
     private bool _stentDeployed = false;
     private int _extractionPenalty = 0;
+    private int _speedWarnings = 0;
+    private int _wrongTurns = 0;
+    private int _deadEnds = 0;
+    private float _restartHold = 0f;
+    private bool _started = false;
+    private StentVisual _stent;
 
     void Start()
     {
         if (resultsPanel != null) resultsPanel.gameObject.SetActive(false);
+        _stent = FindFirstObjectByType<StentVisual>();
+
+        if (guidewireSimulator != null)
+        {
+            guidewireSimulator.BranchChosen += OnBranchChosen;
+            guidewireSimulator.DeadEndReached += OnDeadEnd;
+        }
+
         EnterPhase(SimPhase.Phase1_Navigation);
+    }
+
+    void OnDestroy()
+    {
+        if (guidewireSimulator != null)
+        {
+            guidewireSimulator.BranchChosen -= OnBranchChosen;
+            guidewireSimulator.DeadEndReached -= OnDeadEnd;
+        }
     }
 
     void Update()
@@ -47,12 +78,47 @@ public class SimulationManager : MonoBehaviour
         {
             case SimPhase.Phase2b_StentDeploy: CheckStentButton(); break;
         }
+
+        HandleRestartHold();
     }
+
+    // Hold left Y to start over at any time.
+    private void HandleRestartHold()
+    {
+        if (CurrentPhase == SimPhase.Idle) return;
+
+        if (SimInput.RestartHeld) _restartHold += Time.unscaledDeltaTime;
+        else _restartHold = Mathf.Max(0f, _restartHold - Time.unscaledDeltaTime * 2f);
+
+        RestartProgress = Mathf.Clamp01(_restartHold / Mathf.Max(0.1f, restartHoldSeconds));
+        if (_restartHold >= restartHoldSeconds)
+        {
+            _restartHold = 0f;
+            RestartProgress = 0f;
+            RestartRun();
+        }
+    }
+
     public void StartPhase1() => EnterPhase(SimPhase.Phase1_Navigation);
+
+    // Used by Play Again and by the left Y hold. Puts everything back at the start.
+    public void RestartRun()
+    {
+        if (resultsPanel != null) resultsPanel.gameObject.SetActive(false);
+        HapticManager.Instance?.StopAll();
+        catheterSimulator?.ResetCatheter();
+        clotTarget?.ResetClot();
+        guidewireSimulator?.ResetGuidewire();
+        _stent?.Hide();
+        EnterPhase(SimPhase.Phase1_Navigation);
+    }
 
     private void EnterPhase(SimPhase phase)
     {
         CurrentPhase = phase;
+        if (_started) Feedback.PhaseChanged();
+        _started = true;
+
         switch (phase)
         {
             case SimPhase.Phase1_Navigation:
@@ -60,6 +126,9 @@ public class SimulationManager : MonoBehaviour
                 _timerRunning = true;
                 _stentDeployed = false;
                 _extractionPenalty = 0;
+                _speedWarnings = 0;
+                _wrongTurns = 0;
+                _deadEnds = 0;
                 fluoroController?.ResetTimer();
                 if (resultsPanel != null) resultsPanel.gameObject.SetActive(false);
                 SetGuidewire(true);
@@ -77,6 +146,9 @@ public class SimulationManager : MonoBehaviour
                 break;
 
             case SimPhase.Phase2c_Extraction:
+                // The clot comes back with the catheter.
+                if (clotTarget != null && catheterSimulator != null)
+                    clotTarget.Capture(catheterSimulator.catheterTipTransform);
                 catheterSimulator?.BeginRetraction();
                 Debug.Log("[SimManager] Phase 2c — Extract clot.");
                 break;
@@ -84,7 +156,9 @@ public class SimulationManager : MonoBehaviour
             case SimPhase.Phase3_Results:
                 _timerRunning = false;
                 SetGuidewire(false);
-                HapticManager.Instance?.PulseOnce(1f, 0.6f);
+                clotTarget?.Release();
+                _stent?.Hide();
+                Feedback.Success();
                 ShowResults();
                 Debug.Log("[SimManager] Phase 3 — Results.");
                 break;
@@ -94,10 +168,11 @@ public class SimulationManager : MonoBehaviour
     private void CheckStentButton()
     {
         if (_stentDeployed) return;
-        if (OVRInput.GetDown(OVRInput.Button.Two, OVRInput.Controller.RTouch))
+        if (SimInput.StentPressed)
         {
             _stentDeployed = true;
-            HapticManager.Instance?.DoublePulse(0.9f);
+            Feedback.StentDeployed();
+            _stent?.Deploy();
             Debug.Log("[SimManager] Stent deployed.");
             EnterPhase(SimPhase.Phase2c_Extraction);
         }
@@ -123,14 +198,32 @@ public class SimulationManager : MonoBehaviour
         if (CurrentPhase == SimPhase.Phase2c_Extraction)
             EnterPhase(SimPhase.Phase3_Results);
     }
-    
-    public void AddExtractionPenalty(int points) => _extractionPenalty += points;
+
+    // Called by CatheterSimulator on each speed warning
+    public void AddExtractionPenalty(int points)
+    {
+        _extractionPenalty += points;
+        _speedWarnings++;
+    }
+
+    // A wrong turn is a branch that does not lead to the clot.
+    private void OnBranchChosen(CenterlineNode branch)
+    {
+        if (CurrentPhase != SimPhase.Phase1_Navigation || clotTarget == null) return;
+        if (!clotTarget.IsOnPath(branch)) _wrongTurns++;
+    }
+
+    private void OnDeadEnd()
+    {
+        if (CurrentPhase == SimPhase.Phase1_Navigation) _deadEnds++;
+    }
 
     private void ShowResults()
     {
         float exposure = fluoroController != null ? fluoroController.TotalExposureTime : 0f;
         string rating = ExtractionRating(out Color color);
-        resultsPanel?.ShowResults(_totalTime, exposure, rating, color);
+        resultsPanel?.ShowResults(_totalTime, exposure, rating, color, _wrongTurns, _deadEnds);
+        WriteRunLog(exposure, rating);
     }
 
     // Each speed warning adds 5 points. Cutoffs are a guess, not validated.
@@ -140,6 +233,31 @@ public class SimulationManager : MonoBehaviour
         if (_extractionPenalty <= 10) { color = Color.yellow; return "Good"; }
         color = Color.red;
         return "Too Fast";
+    }
+
+    // One JSON line per finished run, in the app's data folder on the headset.
+    private void WriteRunLog(float exposure, string rating)
+    {
+        try
+        {
+            var inv = CultureInfo.InvariantCulture;
+            int clotId = clotTarget != null && clotTarget.ClotNode != null ? clotTarget.ClotNode.id : -1;
+            string line = "{"
+                + "\"utc\":\"" + DateTime.UtcNow.ToString("o", inv) + "\","
+                + "\"totalSeconds\":" + _totalTime.ToString("F1", inv) + ","
+                + "\"fluoroSeconds\":" + exposure.ToString("F1", inv) + ","
+                + "\"wrongTurns\":" + _wrongTurns + ","
+                + "\"deadEnds\":" + _deadEnds + ","
+                + "\"speedWarnings\":" + _speedWarnings + ","
+                + "\"rating\":\"" + rating + "\","
+                + "\"clotNode\":" + clotId
+                + "}";
+            File.AppendAllText(Path.Combine(Application.persistentDataPath, "run_log.jsonl"), line + "\n");
+        }
+        catch (Exception e)
+        {
+            Debug.LogWarning("[SimManager] Could not write run log: " + e.Message);
+        }
     }
 
     private void SetGuidewire(bool active)

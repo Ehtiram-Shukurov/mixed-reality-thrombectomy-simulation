@@ -1,5 +1,6 @@
-using UnityEngine;
+using System;
 using System.Collections.Generic;
+using UnityEngine;
 
 // Guidewire navigation — graph-based, right stick only.
 // Stick Y = advance/retract. Stick X = twist at forks.
@@ -15,11 +16,11 @@ public class GuidewireSimulator : MonoBehaviour
     public float twistSpeed = 60f;
     public float alignmentTolerance = 35f;
 
-    // Navigation state
-    private CenterlineNode previousNode;
+    // Navigation state. _path runs from the entry node to the current node.
     private CenterlineNode currentNode;
     private CenterlineNode nextNode;
     private CenterlineNode _retractTarget;
+    private readonly List<CenterlineNode> _path = new List<CenterlineNode>();
 
     private bool isReady = false;
     private bool isAtFork = false;
@@ -28,21 +29,36 @@ public class GuidewireSimulator : MonoBehaviour
     private float _bestBranchAngle = 180f;
     private Quaternion _startLocalRotation;
 
-    // Public properties for GuidewireUI and CatheterSimulator
+    // Public state for the UI, the fork dial and the other simulators
     public bool IsReady => isReady;
     public bool IsAtFork => isAtFork;
     public float BestBranchAngle => _bestBranchAngle;
+    public CenterlineNode CurrentNode => currentNode;
+    public int HistoryDepth => _path.Count;
+    public List<Vector3> TrailPoints => _trailPoints;
+    public float AlignmentTolerance => alignmentTolerance;
+
+    // True when the wire sits at the end of a vessel and is not pulling back.
+    public bool IsAtDeadEnd => isReady && !isAtFork && _retractTarget == null
+                               && currentNode != null && currentNode.branches.Count == 0;
 
     // Signed angle from the tip to the closest branch, seen along the vessel.
     public float BranchSignedAngle { get; private set; }
     // Which way to push the stick to close the gap: -1 left, +1 right, 0 aligned.
     public int TwistDirection { get; private set; }
-    public int HistoryDepth => history.Count;
-    public List<Vector3> TrailPoints => _trailPoints;
+
+    // Fork dial: one angle per branch, in degrees clockwise from the top mark.
+    // A branch on the right of the mark means push the stick right.
+    public const int MaxDial = 4;
+    public int DialCount { get; private set; }
+    public float[] DialAngles { get; } = new float[MaxDial];
+
+    // Raised when a branch is committed at a fork, and when the wire reaches a dead end.
+    public event Action<CenterlineNode> BranchChosen;
+    public event Action DeadEndReached;
 
     // Trail
-    private List<Vector3> _trailPoints = new List<Vector3>();
-    private Stack<CenterlineNode> history = new Stack<CenterlineNode>();
+    private readonly List<Vector3> _trailPoints = new List<Vector3>();
 
     // -------------------------------------------------------------------------
     // Init
@@ -66,16 +82,14 @@ public class GuidewireSimulator : MonoBehaviour
     private void InitializeGuidewire()
     {
         currentNode = centerlineLoader.EntryNode;
-        previousNode = null;
         _retractTarget = null;
 
-        if (currentNode.branches.Count > 0)
-            nextNode = currentNode.branches[0];
+        nextNode = currentNode.branches.Count > 0 ? currentNode.branches[0] : null;
 
         wireTip.position = centerlineLoader.GetNodeWorldPosition(currentNode);
 
-        history.Clear();
-        history.Push(currentNode);
+        _path.Clear();
+        _path.Add(currentNode);
 
         _trailPoints.Clear();
         _trailPoints.Add(WorldToLocal(wireTip.position));
@@ -106,7 +120,7 @@ public class GuidewireSimulator : MonoBehaviour
 
     private void HandleTwist()
     {
-        var stick = OVRInput.Get(OVRInput.Axis2D.PrimaryThumbstick, OVRInput.Controller.RTouch);
+        var stick = SimInput.Stick;
         if (Mathf.Abs(stick.x) > 0.1f)
             wireTip.Rotate(0, 0, -stick.x * twistSpeed * Time.deltaTime, Space.Self);
     }
@@ -117,42 +131,29 @@ public class GuidewireSimulator : MonoBehaviour
 
     private void HandleMovement()
     {
-        var stick = OVRInput.Get(OVRInput.Axis2D.PrimaryThumbstick, OVRInput.Controller.RTouch);
-        float moveInput = stick.y;
+        float moveInput = SimInput.Stick.y;
 
         if (moveInput > 0.1f && nextNode != null)
         {
             _retractTarget = null;
-            HapticManager.Instance?.StartContinuous(0.1f);
+            HapticManager.Instance?.Moving();
             MoveToward(nextNode, moveInput);
         }
-        else if (moveInput < -0.1f && history.Count > 1)
+        else if (moveInput < -0.1f && _path.Count > 1)
         {
-            HapticManager.Instance?.StartContinuous(0.1f);
+            HapticManager.Instance?.Moving();
 
-            if (_retractTarget == null)
-            {
-                history.Pop();
-                _retractTarget = history.Peek();
-            }
+            // Nothing is removed from the path until the previous node is reached, so
+            // letting go half way keeps the state valid. Forward then returns to this node.
+            _retractTarget = _path[_path.Count - 2];
+            nextNode = currentNode;
 
+            var targetPos = centerlineLoader.GetNodeWorldPosition(_retractTarget);
             wireTip.position = Vector3.MoveTowards(
-                wireTip.position,
-                centerlineLoader.GetNodeWorldPosition(_retractTarget),
-                Mathf.Abs(moveInput) * moveSpeed * Time.deltaTime);
+                wireTip.position, targetPos, Mathf.Abs(moveInput) * moveSpeed * Time.deltaTime);
 
-            if (Vector3.Distance(wireTip.position,
-                centerlineLoader.GetNodeWorldPosition(_retractTarget)) < 0.001f)
-            {
-                nextNode = currentNode;
-                previousNode = null;
-                currentNode = _retractTarget;
-                _retractTarget = null;
-
-                while (_trailPoints.Count > history.Count)
-                    _trailPoints.RemoveAt(_trailPoints.Count - 1);
-                UpdateTrail();
-            }
+            if (Vector3.Distance(wireTip.position, targetPos) < 0.001f)
+                FinishRetract();
         }
         else
         {
@@ -171,37 +172,46 @@ public class GuidewireSimulator : MonoBehaviour
             ArriveAtNode(target);
     }
 
+    private void FinishRetract()
+    {
+        var left = currentNode;
+        _path.RemoveAt(_path.Count - 1);
+        currentNode = _path[_path.Count - 1];
+        _retractTarget = null;
+
+        while (_trailPoints.Count > _path.Count)
+            _trailPoints.RemoveAt(_trailPoints.Count - 1);
+        UpdateTrail();
+
+        // Pulling back onto a fork lets you choose a branch again.
+        if (currentNode.branches.Count > 1)
+            EnterFork();
+        else
+            nextNode = left;
+    }
+
     // -------------------------------------------------------------------------
     // Node arrival
     // -------------------------------------------------------------------------
 
     private void ArriveAtNode(CenterlineNode node)
     {
-        previousNode = currentNode;
-        currentNode = node;
-        history.Push(currentNode);
-
-        _trailPoints.Add(WorldToLocal(wireTip.position));
-        UpdateTrail();
-
-        if (currentNode.branches.Count > 1)
+        // Coming back to a node we never left (after letting go half way) adds nothing.
+        if (_path[_path.Count - 1] != node)
         {
-            isAtFork = true;
-            nextNode = null;
-
-            incomingDir = previousNode != null
-                ? (centerlineLoader.GetNodeWorldPosition(currentNode) -
-                   centerlineLoader.GetNodeWorldPosition(previousNode)).normalized
-                : wireTip.forward;
-
-            HapticManager.Instance?.StopContinuous();
-            HapticManager.Instance?.PulseOnce(0.4f, 0.15f);
-
-            Debug.Log("[Guidewire] Fork reached.");
+            _path.Add(node);
+            _trailPoints.Add(WorldToLocal(wireTip.position));
+            UpdateTrail();
         }
-        else if (currentNode.branches.Count == 1)
+        currentNode = node;
+
+        if (node.branches.Count > 1)
         {
-            nextNode = currentNode.branches[0];
+            EnterFork();
+        }
+        else if (node.branches.Count == 1)
+        {
+            nextNode = node.branches[0];
             isAtFork = false;
         }
         else
@@ -209,8 +219,34 @@ public class GuidewireSimulator : MonoBehaviour
             nextNode = null;
             isAtFork = false;
             HapticManager.Instance?.StopContinuous();
+            Feedback.DeadEnd();
+            DeadEndReached?.Invoke();
             Debug.Log("[Guidewire] End of vessel.");
         }
+    }
+
+    private void EnterFork()
+    {
+        isAtFork = true;
+        nextNode = null;
+
+        // Direction the wire came in from, along the path.
+        incomingDir = _path.Count >= 2
+            ? (centerlineLoader.GetNodeWorldPosition(currentNode) -
+               centerlineLoader.GetNodeWorldPosition(_path[_path.Count - 2])).normalized
+            : wireTip.forward;
+
+        Feedback.ForkArrived();
+        Debug.Log("[Guidewire] Fork reached.");
+    }
+
+    private void LeaveFork()
+    {
+        isAtFork = false;
+        _bestBranchAngle = 180f;
+        TwistDirection = 0;
+        DialCount = 0;
+        HapticManager.Instance?.StopContinuous();
     }
 
     // -------------------------------------------------------------------------
@@ -233,28 +269,61 @@ public class GuidewireSimulator : MonoBehaviour
 
     private void EvaluateForkChoice()
     {
-        var stick = OVRInput.Get(OVRInput.Axis2D.PrimaryThumbstick, OVRInput.Controller.RTouch);
+        var stick = SimInput.Stick;
+
+        // Pulling back at a fork goes back down the vessel.
+        if (stick.y < -0.1f && _path.Count > 1)
+        {
+            LeaveFork();
+            return;
+        }
+
         var tipProjected = Vector3.ProjectOnPlane(wireTip.up, incomingDir).normalized;
 
+        int count = Mathf.Min(currentNode.branches.Count, MaxDial);
+        var gaps = new float[count];
         CenterlineNode bestBranch = null;
         Vector3 bestProj = Vector3.zero;
         float bestAngle = float.MaxValue;
+        int bestIndex = 0;
 
-        foreach (var branch in currentNode.branches)
+        for (int i = 0; i < count; i++)
         {
+            var branch = currentNode.branches[i];
             var branchWorld = centerlineLoader.GetNodeWorldPosition(branch);
             var branchDir = (branchWorld - wireTip.position).normalized;
             var branchProj = Vector3.ProjectOnPlane(branchDir, incomingDir).normalized;
-            float angle = Vector3.Angle(tipProjected, branchProj);
+            gaps[i] = Vector3.SignedAngle(tipProjected, branchProj, incomingDir);
+            float angle = Mathf.Abs(gaps[i]);
 
-            if (angle < bestAngle) { bestAngle = angle; bestBranch = branch; bestProj = branchProj; }
+            if (angle < bestAngle) { bestAngle = angle; bestBranch = branch; bestProj = branchProj; bestIndex = i; }
         }
 
         _bestBranchAngle = bestAngle;
-        if (bestBranch != null) UpdateTwistHint(tipProjected, bestProj, bestAngle);
+
+        // The twist axis is not the vessel axis, so which way the gap moves depends on the
+        // fork. Try a small twist to find the sign, then draw the dial so that pushing the
+        // stick right always brings a dot on the right of the mark onto the mark.
+        float sign = 1f;
+        if (bestBranch != null)
+        {
+            var upPlus = Quaternion.AngleAxis(5f, wireTip.forward) * wireTip.up;
+            var plusProjected = Vector3.ProjectOnPlane(upPlus, incomingDir).normalized;
+            float gapPlus = Vector3.SignedAngle(plusProjected, bestProj, incomingDir);
+            // A positive twist is stick left (HandleTwist uses -stick.x).
+            float k = Mathf.DeltaAngle(gaps[bestIndex], gapPlus);
+            sign = k >= 0f ? 1f : -1f;
+        }
+
+        DialCount = count;
+        for (int i = 0; i < count; i++) DialAngles[i] = sign * gaps[i];
+
+        BranchSignedAngle = bestBranch != null ? gaps[bestIndex] : 0f;
+        if (bestAngle <= alignmentTolerance) TwistDirection = 0;
+        else TwistDirection = DialAngles[bestIndex] > 0f ? 1 : -1;
 
         float signal = Mathf.Clamp01(1f - (bestAngle / 180f));
-        HapticManager.Instance?.StartContinuous(signal * 0.5f);
+        HapticManager.Instance?.ForkAlignment(signal);
 
         if (stick.y < 0.1f) return;
 
@@ -264,34 +333,22 @@ public class GuidewireSimulator : MonoBehaviour
             isAtFork = false;
             _bestBranchAngle = 180f;
             TwistDirection = 0;
+            DialCount = 0;
             HapticManager.Instance?.StopContinuous();
+            Feedback.BranchChosen();
+            BranchChosen?.Invoke(bestBranch);
             Debug.Log($"[Guidewire] Branch unlocked at {bestAngle:F1}°.");
         }
     }
 
-    // The twist axis is not the vessel axis, so the sign of BranchSignedAngle does not
-    // say which way to twist. Try a small twist and see if the gap shrinks.
-    private void UpdateTwistHint(Vector3 tipProjected, Vector3 branchProj, float angle)
-    {
-        BranchSignedAngle = Vector3.SignedAngle(tipProjected, branchProj, incomingDir);
-
-        if (angle <= alignmentTolerance) { TwistDirection = 0; return; }
-
-        var upPlus = Quaternion.AngleAxis(5f, wireTip.forward) * wireTip.up;
-        var plusProjected = Vector3.ProjectOnPlane(upPlus, incomingDir).normalized;
-        float anglePlus = Vector3.Angle(plusProjected, branchProj);
-
-        // HandleTwist rotates by -stick.x, so a positive twist is stick left.
-        TwistDirection = anglePlus < angle ? -1 : 1;
-    }
-
-    // Used by Play Again. Clears fork state and tip twist, then goes back to the entry.
+    // Used by Play Again and restart. Clears fork state and tip twist, then goes back to the entry.
     public void ResetGuidewire()
     {
         isAtFork = false;
         _bestBranchAngle = 180f;
         TwistDirection = 0;
         BranchSignedAngle = 0f;
+        DialCount = 0;
         wireTip.localRotation = _startLocalRotation;
         HapticManager.Instance?.StopAll();
         InitializeGuidewire();
