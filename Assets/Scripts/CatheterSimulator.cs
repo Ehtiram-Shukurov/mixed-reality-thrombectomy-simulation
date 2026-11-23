@@ -43,6 +43,60 @@ public class CatheterSimulator : MonoBehaviour
         }
     }
 
+    // The point on the path that is `distance` meters behind the tip, measured along the path.
+    // dir is the direction of travel there (toward the tip). Used to place the stent and clot.
+    public Vector3 ArcPointBehindTip(float distance, out Vector3 dir)
+    {
+        dir = Vector3.up;
+        if (_trail == null || _trail.Count < 2 || catheterTipTransform == null)
+            return catheterTipTransform != null ? catheterTipTransform.position : Vector3.zero;
+
+        Vector3 cur = catheterTipTransform.position;
+        float remaining = Mathf.Max(0f, distance);
+        int i = Mathf.Clamp(_trailIndex, 0, _trail.Count - 1);
+
+        while (true)
+        {
+            Vector3 target = TrailWorldPos(i);
+            Vector3 along = cur - target;
+            float seg = along.magnitude;
+            if (seg > 1e-5f) dir = along / seg;
+
+            if (remaining <= seg) return cur - dir * remaining;
+
+            remaining -= seg;
+            cur = target;
+            if (i == 0)
+            {
+                if (_trail.Count > 1) dir = (TrailWorldPos(1) - TrailWorldPos(0)).normalized;
+                return cur;
+            }
+            i--;
+        }
+    }
+
+    // How far behind the tip (along the path) the path point nearest to worldPoint lies.
+    public float DistanceBehindTipTo(Vector3 worldPoint)
+    {
+        if (_trail == null || _trail.Count < 2 || catheterTipTransform == null) return 0f;
+
+        int nearest = 0;
+        float best = float.MaxValue;
+        for (int k = 0; k < _trail.Count; k++)
+        {
+            float d = (TrailWorldPos(k) - worldPoint).sqrMagnitude;
+            if (d < best) { best = d; nearest = k; }
+        }
+
+        int top = Mathf.Clamp(_trailIndex, 0, _trail.Count - 1);
+        if (nearest > top) return 0f;
+
+        float arc = Vector3.Distance(catheterTipTransform.position, TrailWorldPos(top));
+        for (int i = top; i > nearest; i--)
+            arc += Vector3.Distance(TrailWorldPos(i), TrailWorldPos(i - 1));
+        return arc;
+    }
+
     // Used by restart: stop moving and clear the body.
     public void ResetCatheter()
     {

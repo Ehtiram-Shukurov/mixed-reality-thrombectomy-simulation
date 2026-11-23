@@ -28,6 +28,10 @@ public class SimulationManager : MonoBehaviour
     [Header("UI")]
     public ResultsPanel resultsPanel;
 
+    [Header("Stent")]
+    [Tooltip("Seconds the stent stays open on the clot before you can pull back. Real procedures wait a few minutes; this is shortened.")]
+    public float stentDwellSeconds = 3f;
+
     [Header("Restart")]
     [Tooltip("Hold left Y this long to restart the run.")]
     public float restartHoldSeconds = 2f;
@@ -35,10 +39,15 @@ public class SimulationManager : MonoBehaviour
     public SimPhase CurrentPhase { get; private set; } = SimPhase.Idle;
     // 0 to 1 while left Y is held. Shown on the phase card.
     public float RestartProgress { get; private set; }
+    public bool StentDeployed => _stentDeployed;
+    // 0 to 1 while the stent settles on the clot.
+    public float StentDwell01 => _stentDeployed ? Mathf.Clamp01(_dwell / Mathf.Max(0.1f, stentDwellSeconds)) : 0f;
 
     private float _totalTime = 0f;
     private bool _timerRunning = false;
     private bool _stentDeployed = false;
+    private float _dwell = 0f;
+    private float _clotBehindTip = 0f;
     private int _extractionPenalty = 0;
     private int _speedWarnings = 0;
     private int _wrongTurns = 0;
@@ -128,6 +137,7 @@ public class SimulationManager : MonoBehaviour
                 _totalTime = 0f;
                 _timerRunning = true;
                 _stentDeployed = false;
+                _dwell = 0f;
                 _extractionPenalty = 0;
                 _speedWarnings = 0;
                 _wrongTurns = 0;
@@ -149,9 +159,9 @@ public class SimulationManager : MonoBehaviour
                 break;
 
             case SimPhase.Phase2c_Extraction:
-                // The clot comes back with the catheter.
+                // The clot comes back with the stent, which sits on it behind the catheter tip.
                 if (clotTarget != null && catheterSimulator != null)
-                    clotTarget.Capture(catheterSimulator.catheterTipTransform);
+                    clotTarget.Capture(catheterSimulator, _clotBehindTip);
                 catheterSimulator?.BeginRetraction();
                 Debug.Log("[SimManager] Phase 2c — Extract clot.");
                 break;
@@ -170,14 +180,24 @@ public class SimulationManager : MonoBehaviour
 
     private void CheckStentButton()
     {
-        if (_stentDeployed) return;
+        if (_stentDeployed)
+        {
+            // The stent has to settle into the clot before you can pull it back.
+            _dwell += Time.deltaTime;
+            if (_dwell >= stentDwellSeconds) EnterPhase(SimPhase.Phase2c_Extraction);
+            return;
+        }
+
         if (SimInput.StentPressed)
         {
             _stentDeployed = true;
+            _dwell = 0f;
+            // The catheter tip is past the clot. The stent opens across it.
+            _clotBehindTip = (clotTarget != null && catheterSimulator != null)
+                ? clotTarget.DistanceBehindTip(catheterSimulator) : 0f;
             Feedback.StentDeployed();
-            _stent?.Deploy();
-            Debug.Log("[SimManager] Stent deployed.");
-            EnterPhase(SimPhase.Phase2c_Extraction);
+            _stent?.Deploy(_clotBehindTip);
+            Debug.Log($"[SimManager] Stent deployed across the clot ({_clotBehindTip:F3} m behind the tip).");
         }
     }
 
@@ -225,7 +245,8 @@ public class SimulationManager : MonoBehaviour
     {
         float exposure = fluoroController != null ? fluoroController.TotalExposureTime : 0f;
         string rating = ExtractionRating(out Color color);
-        resultsPanel?.ShowResults(_totalTime, exposure, rating, color, _wrongTurns, _deadEnds);
+        int contrast = fluoroController != null ? fluoroController.ContrastRuns : 0;
+        resultsPanel?.ShowResults(_totalTime, exposure, rating, color, _wrongTurns, _deadEnds, contrast);
         WriteRunLog(exposure, rating);
     }
 
@@ -251,6 +272,7 @@ public class SimulationManager : MonoBehaviour
                 + "\"fluoroSeconds\":" + exposure.ToString("F1", inv) + ","
                 + "\"wrongTurns\":" + _wrongTurns + ","
                 + "\"deadEnds\":" + _deadEnds + ","
+                + "\"contrastRuns\":" + (fluoroController != null ? fluoroController.ContrastRuns : 0) + ","
                 + "\"speedWarnings\":" + _speedWarnings + ","
                 + "\"rating\":\"" + rating + "\","
                 + "\"clotNode\":" + clotId

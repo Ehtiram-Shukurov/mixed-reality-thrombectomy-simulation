@@ -8,8 +8,9 @@ public class GuidewireUI : MonoBehaviour
     public GuidewireSimulator guidewireSimulator;
     public FluoroController fluoroController;
     public SimulationManager simManager;
+    public ClotTarget clotTarget;
 
-    public TextMeshProUGUI phaseText;   
+    public TextMeshProUGUI phaseText;
     public TextMeshProUGUI fluoroText;  
     public TextMeshProUGUI forkText;
     public TextMeshProUGUI instructionText; // one line of help for the current phase
@@ -35,11 +36,21 @@ public class GuidewireUI : MonoBehaviour
     {
         if (instructionText == null || simManager == null) return;
 
+        string phase1 = "Press B to inject dye and find the clot. Push to advance. Twist at forks.";
+        if (clotTarget != null && clotTarget.IsTouched)
+            phase1 = "Wire is at the clot. Keep pushing to cross it.";
+        else if (clotTarget != null && clotTarget.IsRoadmapped)
+            phase1 = "Clot is marked in red. Steer the wire to it. Twist at forks.";
+
+        string stent = simManager.StentDeployed
+            ? "Stent is gripping the clot. Wait."
+            : "Catheter is past the clot. Press B to open the stent across it.";
+
         instructionText.text = simManager.CurrentPhase switch
         {
-            SimulationManager.SimPhase.Phase1_Navigation => "Advance guidewire through vessel. Twist at forks to choose branch. Hold A for X-ray.",
-            SimulationManager.SimPhase.Phase2a_CatheterAdvance => "Catheter following guidewire path. Push forward to advance.",
-            SimulationManager.SimPhase.Phase2b_StentDeploy => "Clot reached. Press B to deploy stent.",
+            SimulationManager.SimPhase.Phase1_Navigation => phase1,
+            SimulationManager.SimPhase.Phase2a_CatheterAdvance => "Catheter follows the wire across the clot. Push forward.",
+            SimulationManager.SimPhase.Phase2b_StentDeploy => stent,
             SimulationManager.SimPhase.Phase2c_Extraction => "Pull back slowly. Keep the pace bar green. It buzzes if you go too fast.",
             SimulationManager.SimPhase.Phase3_Results => "Procedure complete.",
             _ => ""
@@ -72,7 +83,8 @@ public class GuidewireUI : MonoBehaviour
 
         fluoroText.color = fluoroBadge != null ? Dark : Color.yellow;
         if (fluoroBadge != null) fluoroBadge.color = Amber;
-        fluoroText.text = $"X-RAY ON  {fluoroController.TotalExposureTime:F1} s";
+        string mode = fluoroController.ContrastActive ? "CONTRAST" : "X-RAY ON";
+        fluoroText.text = $"{mode}  {fluoroController.TotalExposureTime:F1} s";
     }
 
     private void UpdateFork()
