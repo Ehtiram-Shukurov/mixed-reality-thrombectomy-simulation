@@ -67,7 +67,7 @@ public class ForkDial : MonoBehaviour
             float rad = a * Mathf.Deg2Rad;
             ((RectTransform)dots[i].transform).anchoredPosition = new Vector2(Mathf.Sin(rad), Mathf.Cos(rad)) * radius;
 
-            bool aligned = Mathf.Abs(a) <= guidewire.AlignmentTolerance;
+            bool aligned = Mathf.Abs(Mathf.DeltaAngle(0f, a)) <= guidewire.AlignmentTolerance;
             anyAligned |= aligned;
             dots[i].color = aligned ? alignedColor : idleColor;
             dots[i].transform.localScale = Vector3.one * (aligned ? 1.3f : 1f);
@@ -80,7 +80,8 @@ public class ForkDial : MonoBehaviour
         if (label != null)
         {
             int dir = guidewire.TwistDirection;
-            label.text = dir == 0 ? "Push forward" : dir < 0 ? "<< Twist left" : "Twist right >>";
+            if (dir != 0) label.text = dir < 0 ? "<< Twist left" : "Twist right >>";
+            else label.text = guidewire.HoldProgress >= 1f ? "Push forward" : "Hold steady";
             label.color = anyAligned ? alignedColor : Color.white;
         }
     }

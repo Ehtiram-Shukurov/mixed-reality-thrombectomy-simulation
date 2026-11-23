@@ -14,7 +14,21 @@ public class GuidewireSimulator : MonoBehaviour
     [Header("Settings")]
     public float moveSpeed = 0.05f;
     public float twistSpeed = 60f;
-    public float alignmentTolerance = 35f;
+    [Tooltip("How close the tip must point to a branch, in degrees.")]
+    public float alignmentTolerance = 20f;
+    [Tooltip("Seconds the tip must stay aligned before pushing forward commits the branch.")]
+    public float alignHoldSeconds = 0.4f;
+    [Tooltip("Branches closer than this (degrees, seen along the vessel) are spread apart so there is a real choice.")]
+    public float minBranchSeparation = 40f;
+    [Tooltip("How many nodes down a branch to look when measuring its direction.")]
+    public int branchLookAhead = 4;
+
+    // The bent tip's direction at a fork, in the plane across the vessel.
+    private Vector3 _bendDir = Vector3.up;
+    private float _viewSign = 1f;
+    private Transform _head;
+    public Vector3 BendDirection => _bendDir;
+    public Vector3 IncomingDirection => incomingDir;
 
     // Navigation state. _path runs from the entry node to the current node.
     private CenterlineNode currentNode;
@@ -37,6 +51,13 @@ public class GuidewireSimulator : MonoBehaviour
     public int HistoryDepth => _path.Count;
     public List<Vector3> TrailPoints => _trailPoints;
     public float AlignmentTolerance => alignmentTolerance;
+
+    // Which branch (index in CurrentNode.branches) the twist selects, and how long it has been aligned.
+    public int SelectedBranch { get; private set; } = -1;
+    public bool IsAligned => isAtFork && _bestBranchAngle <= alignmentTolerance;
+    public float HoldProgress => alignHoldSeconds <= 0f ? 1f : Mathf.Clamp01(_alignedTime / alignHoldSeconds);
+    private float _alignedTime;
+    private int _alignedBranch = -1;
 
     // True when the wire sits at the end of a vessel and is not pulling back.
     public bool IsAtDeadEnd => isReady && !isAtFork && _retractTarget == null
@@ -118,11 +139,45 @@ public class GuidewireSimulator : MonoBehaviour
     // Twist
     // -------------------------------------------------------------------------
 
+    // At a fork the bent tip turns around the vessel axis. Stick right turns it clockwise
+    // as you see it, so the dot you want on the right means push right.
     private void HandleTwist()
     {
         var stick = SimInput.Stick;
-        if (Mathf.Abs(stick.x) > 0.1f)
+        if (Mathf.Abs(stick.x) <= 0.1f) return;
+
+        if (isAtFork)
+        {
+            UpdateViewSign();
+            _bendDir = Quaternion.AngleAxis(stick.x * twistSpeed * Time.deltaTime * _viewSign, incomingDir) * _bendDir;
+            _bendDir = Vector3.ProjectOnPlane(_bendDir, incomingDir).normalized;
+        }
+        else
+        {
             wireTip.Rotate(0, 0, -stick.x * twistSpeed * Time.deltaTime, Space.Self);
+        }
+    }
+
+    // Positive AngleAxis turns clockwise for a viewer looking against the axis.
+    // Flip it when the vessel points away from you. Keep the old sign when the vessel is
+    // seen nearly side on, so it does not flicker.
+    private void UpdateViewSign()
+    {
+        if (_head == null) _head = FxUtil.FindHead();
+        if (_head == null) return;
+        float d = Vector3.Dot(incomingDir, _head.forward);
+        if (d < -0.15f) _viewSign = 1f;
+        else if (d > 0.15f) _viewSign = -1f;
+    }
+
+    // Direction from the fork into a branch, measured a few nodes down it so a very
+    // short first step does not throw the angle off.
+    private Vector3 BranchDirection(CenterlineNode branch)
+    {
+        var n = branch;
+        for (int k = 0; k < branchLookAhead && n.branches.Count == 1; k++) n = n.branches[0];
+        var forkPos = centerlineLoader.GetNodeWorldPosition(currentNode);
+        return (centerlineLoader.GetNodeWorldPosition(n) - forkPos).normalized;
     }
 
     // -------------------------------------------------------------------------
@@ -229,12 +284,35 @@ public class GuidewireSimulator : MonoBehaviour
     {
         isAtFork = true;
         nextNode = null;
+        _alignedTime = 0f;
+        _alignedBranch = -1;
 
         // Direction the wire came in from, along the path.
         incomingDir = _path.Count >= 2
             ? (centerlineLoader.GetNodeWorldPosition(currentNode) -
                centerlineLoader.GetNodeWorldPosition(_path[_path.Count - 2])).normalized
             : wireTip.forward;
+
+        // Start the bent tip pointing at a random spot that is not already on a branch,
+        // so every fork needs a real twist.
+        var basis = Vector3.ProjectOnPlane(wireTip.up, incomingDir);
+        if (basis.sqrMagnitude < 1e-4f) basis = Vector3.ProjectOnPlane(Vector3.up, incomingDir);
+        if (basis.sqrMagnitude < 1e-4f) basis = Vector3.ProjectOnPlane(Vector3.right, incomingDir);
+        basis.Normalize();
+        _bendDir = basis;
+        for (int attempt = 0; attempt < 12; attempt++)
+        {
+            var candidate = Quaternion.AngleAxis(UnityEngine.Random.Range(0f, 360f), incomingDir) * basis;
+            float nearest = 180f;
+            foreach (var b in currentNode.branches)
+            {
+                var proj = Vector3.ProjectOnPlane(BranchDirection(b), incomingDir).normalized;
+                nearest = Mathf.Min(nearest, Vector3.Angle(candidate, proj));
+            }
+            _bendDir = candidate;
+            if (nearest > alignmentTolerance * 2.5f) break;
+        }
+        UpdateViewSign();
 
         Feedback.ForkArrived();
         Debug.Log("[Guidewire] Fork reached.");
@@ -246,6 +324,9 @@ public class GuidewireSimulator : MonoBehaviour
         _bestBranchAngle = 180f;
         TwistDirection = 0;
         DialCount = 0;
+        SelectedBranch = -1;
+        _alignedTime = 0f;
+        _alignedBranch = -1;
         HapticManager.Instance?.StopContinuous();
     }
 
@@ -278,45 +359,52 @@ public class GuidewireSimulator : MonoBehaviour
             return;
         }
 
-        var tipProjected = Vector3.ProjectOnPlane(wireTip.up, incomingDir).normalized;
+        UpdateViewSign();
 
         int count = Mathf.Min(currentNode.branches.Count, MaxDial);
         var gaps = new float[count];
-        CenterlineNode bestBranch = null;
-        Vector3 bestProj = Vector3.zero;
-        float bestAngle = float.MaxValue;
-        int bestIndex = 0;
+        var projs = new Vector3[count];
 
+        // Gap from the bent tip to each branch, seen down the vessel, positive = clockwise
+        // as you see it = push the stick right.
         for (int i = 0; i < count; i++)
         {
-            var branch = currentNode.branches[i];
-            var branchWorld = centerlineLoader.GetNodeWorldPosition(branch);
-            var branchDir = (branchWorld - wireTip.position).normalized;
-            var branchProj = Vector3.ProjectOnPlane(branchDir, incomingDir).normalized;
-            gaps[i] = Vector3.SignedAngle(tipProjected, branchProj, incomingDir);
-            float angle = Mathf.Abs(gaps[i]);
+            projs[i] = Vector3.ProjectOnPlane(BranchDirection(currentNode.branches[i]), incomingDir).normalized;
+            gaps[i] = Vector3.SignedAngle(_bendDir, projs[i], incomingDir) * _viewSign;
+        }
 
-            if (angle < bestAngle) { bestAngle = angle; bestBranch = branch; bestProj = branchProj; bestIndex = i; }
+        // Two branches that leave almost in the same direction cannot be told apart by twisting.
+        // Spread them to at least minBranchSeparation around their middle so the choice is real.
+        if (count == 2)
+        {
+            float d = Mathf.DeltaAngle(gaps[0], gaps[1]);
+            if (Mathf.Abs(d) < minBranchSeparation)
+            {
+                float s = d >= 0f ? 1f : -1f;
+                float mid = gaps[0] + d * 0.5f;
+                gaps[0] = mid - s * minBranchSeparation * 0.5f;
+                gaps[1] = mid + s * minBranchSeparation * 0.5f;
+            }
+        }
+
+        CenterlineNode bestBranch = null;
+        float bestAngle = float.MaxValue;
+        int bestIndex = 0;
+        for (int i = 0; i < count; i++)
+        {
+            gaps[i] = Mathf.DeltaAngle(0f, gaps[i]);
+            float angle = Mathf.Abs(gaps[i]);
+            if (angle < bestAngle)
+            {
+                bestAngle = angle; bestBranch = currentNode.branches[i]; bestIndex = i;
+            }
         }
 
         _bestBranchAngle = bestAngle;
-
-        // The twist axis is not the vessel axis, so which way the gap moves depends on the
-        // fork. Try a small twist to find the sign, then draw the dial so that pushing the
-        // stick right always brings a dot on the right of the mark onto the mark.
-        float sign = 1f;
-        if (bestBranch != null)
-        {
-            var upPlus = Quaternion.AngleAxis(5f, wireTip.forward) * wireTip.up;
-            var plusProjected = Vector3.ProjectOnPlane(upPlus, incomingDir).normalized;
-            float gapPlus = Vector3.SignedAngle(plusProjected, bestProj, incomingDir);
-            // A positive twist is stick left (HandleTwist uses -stick.x).
-            float k = Mathf.DeltaAngle(gaps[bestIndex], gapPlus);
-            sign = k >= 0f ? 1f : -1f;
-        }
+        SelectedBranch = bestBranch != null ? bestIndex : -1;
 
         DialCount = count;
-        for (int i = 0; i < count; i++) DialAngles[i] = sign * gaps[i];
+        for (int i = 0; i < count; i++) DialAngles[i] = gaps[i];
 
         BranchSignedAngle = bestBranch != null ? gaps[bestIndex] : 0f;
         if (bestAngle <= alignmentTolerance) TwistDirection = 0;
@@ -325,15 +413,24 @@ public class GuidewireSimulator : MonoBehaviour
         float signal = Mathf.Clamp01(1f - (bestAngle / 180f));
         HapticManager.Instance?.ForkAlignment(signal);
 
+        // The tip has to stay on the same branch, inside the zone, for alignHoldSeconds.
+        bool aligned = bestAngle <= alignmentTolerance && bestBranch != null;
+        if (aligned && _alignedBranch == bestIndex) _alignedTime += Time.deltaTime;
+        else _alignedTime = 0f;
+        _alignedBranch = aligned ? bestIndex : -1;
+
         if (stick.y < 0.1f) return;
 
-        if (bestAngle <= alignmentTolerance && bestBranch != null)
+        if (aligned && _alignedTime >= alignHoldSeconds)
         {
             nextNode = bestBranch;
             isAtFork = false;
             _bestBranchAngle = 180f;
             TwistDirection = 0;
             DialCount = 0;
+            SelectedBranch = -1;
+            _alignedTime = 0f;
+            _alignedBranch = -1;
             HapticManager.Instance?.StopContinuous();
             Feedback.BranchChosen();
             BranchChosen?.Invoke(bestBranch);
