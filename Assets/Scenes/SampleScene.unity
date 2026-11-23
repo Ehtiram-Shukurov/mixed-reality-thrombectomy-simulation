@@ -988,7 +988,6 @@ GameObject:
   - component: {fileID: 72244410}
   - component: {fileID: 72244409}
   - component: {fileID: 72244411}
-  - component: {fileID: 72244412}
   m_Layer: 0
   m_Name: dicomBody
   m_TagString: Untagged
@@ -1228,21 +1227,6 @@ MonoBehaviour:
         Min: 0.5
         Max: 1.5
   _resetScaleResponsivenessOnConstraintOvershoot: 0
---- !u!114 &72244412
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 72244403}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: b89ab50e57317cf45aa4d293cfeb33f5, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::VolumeFrame
-  arm: 0.14
-  thickness: 0.0025
-  color: {r: 1, g: 1, b: 1, a: 0.35}
 --- !u!1 &73474149
 GameObject:
   m_ObjectHideFlags: 0
@@ -4377,6 +4361,7 @@ MonoBehaviour:
   guidewireSimulator: {fileID: 1269141805}
   fluoroController: {fileID: 1269141809}
   simManager: {fileID: 1634681679}
+  clotTarget: {fileID: 300974650}
   phaseText: {fileID: 1898283846}
   fluoroText: {fileID: 1665571299}
   forkText: {fileID: 1245276491}
@@ -4981,7 +4966,7 @@ Transform:
   serializedVersion: 2
   m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
   m_LocalPosition: {x: 0, y: 0, z: 0}
-  m_LocalScale: {x: 0.05, y: 0.05, z: 0.05}
+  m_LocalScale: {x: 0.025, y: 0.025, z: 0.025}
   m_ConstrainProportionsScale: 0
   m_Children: []
   m_Father: {fileID: 72244407}
@@ -5081,7 +5066,11 @@ MonoBehaviour:
   fluoroController: {fileID: 1269141809}
   wireTip: {fileID: 1269141803}
   upperFraction: 0.3
-  detectionRadius: 0.015
+  crossNodes: 8
+  minCrossNodes: 3
+  keepRoadmapMarker: 1
+  markerSize: 0.03
+  markerColor: {r: 0.97, g: 0.45, b: 0.38, a: 0.85}
 --- !u!1 &301042707
 GameObject:
   m_ObjectHideFlags: 0
@@ -14552,6 +14541,57 @@ RectTransform:
   m_AnchoredPosition: {x: 0, y: 1.2}
   m_SizeDelta: {x: 220, y: 220}
   m_Pivot: {x: 0.5, y: 0.5}
+--- !u!1 &897870700
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 897870702}
+  - component: {fileID: 897870701}
+  m_Layer: 5
+  m_Name: XRayMonitor
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!114 &897870701
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 897870700}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 229e47c209f60324c9aadc012799a871, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::XRayMonitor
+  fluoro: {fileID: 1269141809}
+  centerlineLoader: {fileID: 1634681678}
+  monitorShader: {fileID: 4800000, guid: 4c9afa72e980f3446be7cccf95e220b7, type: 3}
+  screenSize: 0.22
+  resolution: 384
+  fieldOfView: 48
+  distance: 1.25
+--- !u!4 &897870702
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 897870700}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0.483, y: 1.3000001, z: 0.793}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 0}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &900452912
 GameObject:
   m_ObjectHideFlags: 0
@@ -14977,6 +15017,59 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: f4688fdb7df04437aeb418b961361dc5, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+--- !u!1 &939718354
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 939718356}
+  - component: {fileID: 939718355}
+  m_Layer: 0
+  m_Name: BranchPreview
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!114 &939718355
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 939718354}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 14195559b412182449242a7da9cb954b, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::BranchPreview
+  guidewire: {fileID: 1269141805}
+  nodesAhead: 14
+  width: 0.0035
+  selectedColor: {r: 0.98, g: 0.75, b: 0.14, a: 1}
+  alignedColor: {r: 0.3, g: 0.85, b: 0.5, a: 1}
+  otherColor: {r: 1, g: 1, b: 1, a: 0.3}
+  tipLength: 0.012
+  tipWidth: 0.003
+  tipColor: {r: 0.85, g: 0.97, b: 1, a: 1}
+--- !u!4 &939718356
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 939718354}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 0}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &943984386
 GameObject:
   m_ObjectHideFlags: 0
@@ -18545,6 +18638,54 @@ MeshFilter:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1198788506}
   m_Mesh: {fileID: 10207, guid: 0000000000000000e000000000000000, type: 0}
+--- !u!1 &1199039190
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 1199039192}
+  - component: {fileID: 1199039191}
+  m_Layer: 0
+  m_Name: VolumeBase
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!114 &1199039191
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1199039190}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: b1fa593143b09504f825925886aa5043, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::VolumeBase
+  volume: {fileID: 72244407}
+  sizeFactor: 1.25
+  gap: 0.02
+  color: {r: 0.45, g: 0.95, b: 0.88, a: 0.55}
+--- !u!4 &1199039192
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1199039190}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 0}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &1199191545
 GameObject:
   m_ObjectHideFlags: 0
@@ -20177,6 +20318,9 @@ MonoBehaviour:
   moveSpeed: 0.05
   twistSpeed: 100
   alignmentTolerance: 20
+  alignHoldSeconds: 0.4
+  minBranchSeparation: 40
+  branchLookAhead: 4
 --- !u!114 &1269141806
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -20262,6 +20406,9 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::FluoroController
   dicomLoader: {fileID: 72244408}
   fluoroRenderMode: 6
+  contrastSeconds: 5
+  plainVesselVisibility: 0.05
+  contrastFade: 0.4
 --- !u!114 &1269141810
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -20563,8 +20710,8 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 3507ebab8845fa543a9d612c963fa27d, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::StentVisual
-  length: 0.05
-  diameter: 0.024
+  length: 0.03
+  diameter: 0.012
   growSeconds: 0.4
   color: {r: 0.18, g: 0.83, b: 0.75, a: 0.9}
 --- !u!4 &1279756908
@@ -23773,6 +23920,38 @@ PrefabInstance:
       propertyPath: m_Layer
       value: 3
       objectReference: {fileID: 0}
+    - target: {fileID: 6819193313495537393, guid: d20e5167c9cb0324ca767fde91f2f10f, type: 3}
+      propertyPath: m_AnchorMax.x
+      value: 0.5
+      objectReference: {fileID: 0}
+    - target: {fileID: 6819193313495537393, guid: d20e5167c9cb0324ca767fde91f2f10f, type: 3}
+      propertyPath: m_AnchorMax.y
+      value: 0.5
+      objectReference: {fileID: 0}
+    - target: {fileID: 6819193313495537393, guid: d20e5167c9cb0324ca767fde91f2f10f, type: 3}
+      propertyPath: m_AnchorMin.x
+      value: 0.5
+      objectReference: {fileID: 0}
+    - target: {fileID: 6819193313495537393, guid: d20e5167c9cb0324ca767fde91f2f10f, type: 3}
+      propertyPath: m_AnchorMin.y
+      value: 0.5
+      objectReference: {fileID: 0}
+    - target: {fileID: 6819193313495537393, guid: d20e5167c9cb0324ca767fde91f2f10f, type: 3}
+      propertyPath: m_SizeDelta.x
+      value: 845
+      objectReference: {fileID: 0}
+    - target: {fileID: 6819193313495537393, guid: d20e5167c9cb0324ca767fde91f2f10f, type: 3}
+      propertyPath: m_SizeDelta.y
+      value: 568.6999
+      objectReference: {fileID: 0}
+    - target: {fileID: 6819193313495537393, guid: d20e5167c9cb0324ca767fde91f2f10f, type: 3}
+      propertyPath: m_AnchoredPosition.x
+      value: 177.49998
+      objectReference: {fileID: 0}
+    - target: {fileID: 6819193313495537393, guid: d20e5167c9cb0324ca767fde91f2f10f, type: 3}
+      propertyPath: m_AnchoredPosition.y
+      value: 125.650024
+      objectReference: {fileID: 0}
     - target: {fileID: 6819193313518456872, guid: d20e5167c9cb0324ca767fde91f2f10f, type: 3}
       propertyPath: m_VerticalFit
       value: 1
@@ -23832,6 +24011,38 @@ PrefabInstance:
     - target: {fileID: 6819193313826575188, guid: d20e5167c9cb0324ca767fde91f2f10f, type: 3}
       propertyPath: m_Layer
       value: 3
+      objectReference: {fileID: 0}
+    - target: {fileID: 6819193313826575195, guid: d20e5167c9cb0324ca767fde91f2f10f, type: 3}
+      propertyPath: m_AnchorMax.x
+      value: 0.5
+      objectReference: {fileID: 0}
+    - target: {fileID: 6819193313826575195, guid: d20e5167c9cb0324ca767fde91f2f10f, type: 3}
+      propertyPath: m_AnchorMax.y
+      value: 0.5
+      objectReference: {fileID: 0}
+    - target: {fileID: 6819193313826575195, guid: d20e5167c9cb0324ca767fde91f2f10f, type: 3}
+      propertyPath: m_AnchorMin.x
+      value: 0.5
+      objectReference: {fileID: 0}
+    - target: {fileID: 6819193313826575195, guid: d20e5167c9cb0324ca767fde91f2f10f, type: 3}
+      propertyPath: m_AnchorMin.y
+      value: 0.5
+      objectReference: {fileID: 0}
+    - target: {fileID: 6819193313826575195, guid: d20e5167c9cb0324ca767fde91f2f10f, type: 3}
+      propertyPath: m_SizeDelta.x
+      value: 845
+      objectReference: {fileID: 0}
+    - target: {fileID: 6819193313826575195, guid: d20e5167c9cb0324ca767fde91f2f10f, type: 3}
+      propertyPath: m_SizeDelta.y
+      value: 568.6999
+      objectReference: {fileID: 0}
+    - target: {fileID: 6819193313826575195, guid: d20e5167c9cb0324ca767fde91f2f10f, type: 3}
+      propertyPath: m_AnchoredPosition.x
+      value: 177.49998
+      objectReference: {fileID: 0}
+    - target: {fileID: 6819193313826575195, guid: d20e5167c9cb0324ca767fde91f2f10f, type: 3}
+      propertyPath: m_AnchoredPosition.y
+      value: 125.650024
       objectReference: {fileID: 0}
     - target: {fileID: 7215946385502026756, guid: d20e5167c9cb0324ca767fde91f2f10f, type: 3}
       propertyPath: m_text
@@ -24992,10 +25203,12 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::UIGroupFollower
   panels:
   - root: {fileID: 1811645740}
-    offset: {x: -0.13, y: -0.2, z: 0.58}
+    offset: {x: -0.4, y: -0.2, z: 0.52}
   - root: {fileID: 1380986509}
-    offset: {x: -0.13, y: 0.045, z: 0.58}
-  yawTolerance: 30
+    offset: {x: -0.4, y: 0.045, z: 0.52}
+  - root: {fileID: 897870702}
+    offset: {x: 0.45, y: -0.05, z: 0.55}
+  yawTolerance: 40
   distanceTolerance: 0.35
   yawSmoothTime: 0.8
   positionSmoothTime: 0.8
@@ -27246,8 +27459,9 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::CenterlineLoader
   volumeTransform: {fileID: 72244407}
-  alignmentOffset: {x: 0, y: 0, z: 0.05}
-  scaleMultiplier: 0.93
+  alignmentOffset: {x: 0.0065, y: 0.0051, z: 0.0456}
+  scaleMultiplier: 1
+  axisScale: {x: 1.0419, y: 1.0419, z: 0.9125}
   mergeTolerance: 0.0008
   routeBoundaryThreshold: 0.1
 --- !u!114 &1634681679
@@ -27268,6 +27482,7 @@ MonoBehaviour:
   catheterSimulator: {fileID: 1634681680}
   clotTarget: {fileID: 300974650}
   resultsPanel: {fileID: 1333047835}
+  stentDwellSeconds: 3
   restartHoldSeconds: 2
 --- !u!114 &1634681680
 MonoBehaviour:
@@ -35431,3 +35646,6 @@ SceneRoots:
   - {fileID: 1983869831}
   - {fileID: 1460147477}
   - {fileID: 1364706256}
+  - {fileID: 939718356}
+  - {fileID: 1199039192}
+  - {fileID: 897870702}
