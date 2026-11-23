@@ -38,18 +38,33 @@ public static class FxUtil
         return m;
     }
 
+    private static Mesh _quadMesh;
+
+    private static Mesh QuadMesh()
+    {
+        if (_quadMesh != null) return _quadMesh;
+        _quadMesh = new Mesh { name = "FxQuad" };
+        _quadMesh.vertices = new[]
+        {
+            new Vector3(-0.5f, -0.5f, 0f), new Vector3(0.5f, -0.5f, 0f),
+            new Vector3(-0.5f, 0.5f, 0f), new Vector3(0.5f, 0.5f, 0f)
+        };
+        _quadMesh.uv = new[] { new Vector2(0, 0), new Vector2(1, 0), new Vector2(0, 1), new Vector2(1, 1) };
+        _quadMesh.triangles = new[] { 0, 2, 1, 2, 3, 1 };
+        _quadMesh.RecalculateNormals();
+        _quadMesh.RecalculateBounds();
+        return _quadMesh;
+    }
+
     // Makes a quad (no collider) under a parent. Works in the editor and in play mode.
     public static GameObject MakeQuad(string name, Transform parent)
     {
-        var quad = GameObject.CreatePrimitive(PrimitiveType.Quad);
-        quad.name = name;
-        var col = quad.GetComponent<Collider>();
-        if (col != null)
-        {
-            if (Application.isPlaying) Object.Destroy(col); else Object.DestroyImmediate(col);
-        }
+        // Built by hand so it never has a collider. A primitive comes with one,
+        // and a collider under the model can confuse the grab system.
+        var quad = new GameObject(name);
         quad.transform.SetParent(parent, false);
-        var r = quad.GetComponent<Renderer>();
+        quad.AddComponent<MeshFilter>().sharedMesh = QuadMesh();
+        var r = quad.AddComponent<MeshRenderer>();
         r.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
         r.receiveShadows = false;
         return quad;
