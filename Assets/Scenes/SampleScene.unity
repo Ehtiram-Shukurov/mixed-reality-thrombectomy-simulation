@@ -2348,6 +2348,55 @@ MeshFilter:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 159264747}
   m_Mesh: {fileID: 10207, guid: 0000000000000000e000000000000000, type: 0}
+--- !u!1 &161224161
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 161224163}
+  - component: {fileID: 161224162}
+  m_Layer: 0
+  m_Name: VesselMeshView
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!114 &161224162
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 161224161}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 94352ae2870d3d042903c86842355098, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::VesselMeshView
+  loader: {fileID: 72244408}
+  fluoro: {fileID: 1269141809}
+  glassShader: {fileID: 4800000, guid: 7371fd2cbb8e0f74a8c10c7369d7aa54, type: 3}
+  meshRenderMode: 2
+  fileName: vessel_mesh.bytes
+--- !u!4 &161224163
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 161224161}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 0}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &164121775
 GameObject:
   m_ObjectHideFlags: 0
@@ -18668,9 +18717,11 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::VolumeBase
   volume: {fileID: 72244407}
-  sizeFactor: 1.25
-  gap: 0.02
-  color: {r: 0.45, g: 0.95, b: 0.88, a: 0.55}
+  sizeFactor: 1.3
+  gap: 0.015
+  ringColor: {r: 0.78, g: 0.95, b: 1, a: 0.55}
+  shadowStrength: 0.45
+  spinSpeed: 3
 --- !u!4 &1199039192
 Transform:
   m_ObjectHideFlags: 0
@@ -35649,3 +35700,4 @@ SceneRoots:
   - {fileID: 939718356}
   - {fileID: 1199039192}
   - {fileID: 897870702}
+  - {fileID: 161224163}
