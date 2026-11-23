@@ -391,7 +391,8 @@ Shader "Custom/DICOM_Volume_MIP_VR_Stable"
                         // Soft light from the viewer. No shiny highlight: on voxel data it
                         // turns the steps into bright scratches.
                         float ndl = saturate(dot(n, -rayDir));
-                        rgb *= 0.45 + 0.55 * ndl;
+                        // Gentle, so the voxel steps in this data do not show as scratches.
+                        rgb *= 0.62 + 0.38 * ndl;
                     }
 
                     // Depth cue, no extra texture reads: surfaces farther along the ray are darker.
