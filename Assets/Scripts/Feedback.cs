@@ -12,6 +12,11 @@ public static class Feedback
         AudioCues.Instance?.Play(AudioCues.Cue.Tick);
     }
 
+    public static void ContrastInjected()
+    {
+        AudioCues.Instance?.Play(AudioCues.Cue.Tick);
+    }
+
     public static void DeadEnd()
     {
         HapticManager.Instance?.DeadEnd();

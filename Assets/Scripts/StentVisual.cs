@@ -1,16 +1,17 @@
 using UnityEngine;
 
-// A simple mesh-style stent shown around the clot when it is deployed, then carried back with the catheter.
+// A simple mesh-style stent opened across the clot, then carried back with the catheter.
 public class StentVisual : MonoBehaviour
 {
-    public float length = 0.05f;
-    public float diameter = 0.024f;
+    public float length = 0.03f;
+    public float diameter = 0.012f;
     public float growSeconds = 0.4f;
     public Color color = new Color(0.18f, 0.83f, 0.75f, 0.9f);
 
     private CatheterSimulator _catheter;
     private GameObject _mesh;
     private float _t = -1f;
+    private float _behind;
 
     void Awake()
     {
@@ -51,8 +52,11 @@ public class StentVisual : MonoBehaviour
         _catheter = FindFirstObjectByType<CatheterSimulator>();
     }
 
-    public void Deploy()
+    // behind: how far the middle of the stent sits behind the catheter tip, along the path.
+    // The stent is opened across the clot, so this is where the clot is.
+    public void Deploy(float behind)
     {
+        _behind = behind;
         _t = 0f;
         _mesh.SetActive(true);
         Place(0f);
@@ -74,8 +78,8 @@ public class StentVisual : MonoBehaviour
     private void Place(float grow)
     {
         if (_catheter == null || _catheter.catheterTipTransform == null) return;
-        transform.position = _catheter.catheterTipTransform.position;
-        transform.rotation = Quaternion.FromToRotation(Vector3.up, _catheter.TipDirection);
+        transform.position = _catheter.ArcPointBehindTip(_behind, out Vector3 dir);
+        transform.rotation = Quaternion.FromToRotation(Vector3.up, dir);
         // The Unity cylinder is 2 units tall and 1 unit wide.
         float d = diameter * grow;
         _mesh.transform.localScale = new Vector3(d, length * 0.5f, d);

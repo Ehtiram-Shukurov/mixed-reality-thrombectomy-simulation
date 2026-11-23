@@ -10,13 +10,29 @@ public static class SimInput
     public static bool StentOverride;
     public static bool RestartOverride;
     public static bool ConfirmOverride;
+    public static bool ContrastOverride;
 
     [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
     private static void ResetStatics()
     {
         UseOverride = false;
         StickOverride = Vector2.zero;
-        FluoroOverride = StentOverride = RestartOverride = ConfirmOverride = false;
+        FluoroOverride = StentOverride = RestartOverride = ConfirmOverride = ContrastOverride = false;
+    }
+
+    // Inject contrast dye (true once per press): right B, or left X if the left controller is held.
+    // B also deploys the stent, so FluoroController ignores this during the stent step.
+    public static bool ContrastPressed
+    {
+        get
+        {
+            if (!UseOverride)
+                return OVRInput.GetDown(OVRInput.Button.Two, OVRInput.Controller.RTouch)
+                    || OVRInput.GetDown(OVRInput.Button.Three, OVRInput.Controller.LTouch);
+            bool v = ContrastOverride;
+            ContrastOverride = false;
+            return v;
+        }
     }
 
     // Right thumbstick: Y advances or retracts, X twists.
