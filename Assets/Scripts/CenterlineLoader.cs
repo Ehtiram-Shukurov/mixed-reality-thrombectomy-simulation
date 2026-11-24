@@ -29,6 +29,8 @@ public class CenterlineLoader : MonoBehaviour
     [Header("Live Alignment Tweaks")]
     public Vector3 alignmentOffset = Vector3.zero;
     public float scaleMultiplier = 1f;
+    [Tooltip("Extra scale per axis. The CT voxels are not cubic, so the path needs a different scale on each axis to sit inside the vessels.")]
+    public Vector3 axisScale = Vector3.one;
 
     [Header("Graph Construction")]
     [Tooltip("Two raw points within this distance get merged into one node. " +
@@ -240,7 +242,7 @@ public class CenterlineLoader : MonoBehaviour
 
     public Vector3 GetNodeWorldPosition(CenterlineNode node)
     {
-        Vector3 tweakedLocalPos = (node.normalizedPosition * scaleMultiplier) + alignmentOffset;
+        Vector3 tweakedLocalPos = Vector3.Scale(node.normalizedPosition, axisScale) * scaleMultiplier + alignmentOffset;
         return volumeTransform.TransformPoint(tweakedLocalPos);
     }
 

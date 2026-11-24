@@ -19,7 +19,11 @@ Shader "Custom/DICOM_Volume_MIP_VR_Stable"
         _AlphaIntensity ("Alpha Intensity Multiplier", Range(0.01, 10)) = 1.0
         _Threshold ("Density Threshold", Range(0.0, 1.0)) = 0.05
         _UpperThreshold ("Upper Density Threshold", Range(0.0, 1.0)) = 1.0
-        
+        _Contrast ("Vessel contrast in X-ray mode (0 = none, 1 = full)", Range(0.0, 1.0)) = 1.0
+        _DepthFade ("Darken far surfaces in vessel modes (0 = off)", Range(0.0, 1.0)) = 0.35
+        _Shading ("Surface lighting in vessel modes (0 = off, 1 = on)", Range(0.0, 1.0)) = 1.0
+        _Jitter ("Ray start jitter in steps (0.01 = almost off, 0.5 = trade banding for noise)", Range(0.0, 1.0)) = 0.01
+
         [Header(VR Hand Interaction)]
         _LeftHandPos ("Left Hand Position (UV Space)", Vector) = (0,0,0,0)
         _RightHandPos ("Right Hand Position (UV Space)", Vector) = (0,0,0,0)
@@ -29,6 +33,9 @@ Shader "Custom/DICOM_Volume_MIP_VR_Stable"
         _mriBlack ("MRI Black Level", Color) = (0.01, 0.02, 0.04, 1)
         _mriSteel ("MRI Steel Level", Color) = (0.45, 0.52, 0.6, 1)
         _mriWhite ("MRI White Level", Color) = (1.0, 1.0, 1.0, 1)
+        _VesselColor ("Vessel Color", Color) = (0.74, 0.16, 0.18, 1)
+        _OrganColor ("Organ Color", Color) = (0.78, 0.60, 0.50, 1)
+        _BoneColor ("Bone Color", Color) = (0.90, 0.86, 0.76, 1)
     }
     SubShader
     {
@@ -80,6 +87,10 @@ Shader "Custom/DICOM_Volume_MIP_VR_Stable"
             half _AlphaIntensity;
             half _Threshold;
             half _UpperThreshold;
+            half _Contrast;
+            half _DepthFade;
+            half _Shading;
+            half _Jitter;
             float4 _LeftHandPos;
             float4 _RightHandPos;
             half _ClipRadius;
@@ -89,9 +100,26 @@ Shader "Custom/DICOM_Volume_MIP_VR_Stable"
             half3 _mriBlack;
             half3 _mriSteel;
             half3 _mriWhite;
+            half4 _VesselColor;
+            half4 _OrganColor;
+            half4 _BoneColor;
 
             // Dither noise
             float hash(float2 p) { return frac(sin(dot(p, float2(12.9898, 78.233))) * 43758.5453); }
+
+            // 1 if the label at this point belongs to the current segmentation mode, else 0.
+            // Mirrors the label ranges in the main loop.
+            float Solid(float3 p)
+            {
+                float d = round(tex3Dlod(_SegmentationTex, float4(p, 0)).r * 117.0);
+                bool inside = false;
+                if (_RenderMode == 1)      inside = d > 0 && d < 40;
+                else if (_RenderMode == 2) inside = d > 21 && d < 30;
+                else if (_RenderMode == 3) inside = d > 17 && d < 40;
+                else if (_RenderMode == 4) inside = (d > 0 && d < 13) || (d > 18 && d < 30);
+                else                       inside = (d > 21 && d < 30) || d == 2 || d == 3 || d == 10 || d == 11;
+                return inside ? 1.0 : 0.0;
+            }
 
             v2f vert (appdata v)
             {
@@ -199,7 +227,7 @@ Shader "Custom/DICOM_Volume_MIP_VR_Stable"
                 float3 uv = startUV;
 
                 half dither = hash(i.pos.xy);
-                uv += stepVec * (dither * 0.01);
+                uv += stepVec * (dither * _Jitter);
 
                 // --- 2. TEXTURE LOOP (Safe to use 16-bit Half for Speed) ---
                 half cumulative_density = 0.0;
@@ -227,7 +255,8 @@ Shader "Custom/DICOM_Volume_MIP_VR_Stable"
                             float densityToAdd = 0.0;
 
                             if (label >= 22 && label <= 29) {
-                                densityToAdd = 1.0; 
+                                // Dye in the vessels. With no contrast they barely show, as on a plain X-ray.
+                                densityToAdd = _Contrast;
                             } 
                             else if (rawDensity >= 0.73 && rawDensity <= 1.0) {
                                 densityToAdd = rawDensity *0.1;
@@ -314,21 +343,62 @@ Shader "Custom/DICOM_Volume_MIP_VR_Stable"
 
                     // Derive category from label ranges (mirrors your mode logic)
                     float hueBase;
-                    if      (labelId < 13)                          hueBase = 0.05; // organs      → warm orange/red
-                    else if (labelId >= 22 && labelId < 30)         hueBase = 0.62; // vasculature → blue/cyan
-                    else if (labelId >= 13 && labelId < 22)         hueBase = 0.13; // bone/spine  → yellow
-                    else                                            hueBase = 0.35; // other       → green fallback
+                    // A fixed, muted palette per category instead of random hues.
+                    // Vessels deep red, organs soft tan, bone ivory, anything else grey-green.
+                    float3 baseCol;
+                    if      (labelId >= 22 && labelId < 30) baseCol = _VesselColor.rgb;
+                    else if (labelId < 13)                  baseCol = _OrganColor.rgb;
+                    else if (labelId >= 13 && labelId < 22) baseCol = _BoneColor.rgb;
+                    else                                    baseCol = float3(0.55, 0.62, 0.58);
+                    hueBase = 0;
 
-                    // Per-label variation within the band
-                    float h = frac(sin(labelId * 127.1) * 43758.5453);
+                    // Small brightness change per label so neighbouring structures stay apart.
                     float v = frac(sin(labelId * 311.7) * 53758.5453);
+                    float3 rgb = baseCol * (0.86 + v * 0.22);
 
-                    float hue = hueBase + h * 0.12;
-                    float sat  = 0.65 + v * 0.25;  // 0.65–0.90
-                    float val  = 0.75 + v * 0.20;  // 0.75–0.95, keep bright since no lighting
+                    // The loop steps are coarse, so narrow the hit down to the surface between
+                    // the last empty sample and the first solid one (3 reads).
+                    float3 hitUV = uv;
+                    if (_Shading > 0.5)
+                    {
+                        float3 a = uv - stepVec;
+                        float3 b = uv;
+                        UNITY_UNROLL
+                        for (int r = 0; r < 3; r++)
+                        {
+                            float3 m = (a + b) * 0.5;
+                            if (Solid(m) > 0.5) b = m; else a = m;
+                        }
+                        hitUV = b;
+                    }
 
-                    // HSV → RGB
-                    float3 rgb = val * lerp(float3(1,1,1), saturate(abs(frac(hue + float3(0, 0.667, 0.333)) * 6.0 - 3.0) - 1.0), sat);
+                    // Surface direction from how the hit point changes between neighbouring
+                    // pixels (no texture reads). Kept outside any branch so the derivatives are valid.
+                    float3 dx = ddx(hitUV);
+                    float3 dy = ddy(hitUV);
+                    float3 n = cross(dx, dy);
+                    float nLen = length(n);
+                    // At silhouettes the neighbour pixel hits something far away. Fall back to
+                    // facing the viewer there, so the edge does not sparkle.
+                    float jump = max(length(dx), length(dy));
+                    float pixelStep = length(stepVec);
+                    bool smooth = nLen > 1e-10 && jump < pixelStep * 1.5;
+                    n = smooth ? n / nLen : -rayDir;
+                    if (dot(n, -rayDir) < 0) n = -n;
+
+                    if (_Shading > 0.5)
+                    {
+                        // Soft light from the viewer. No shiny highlight: on voxel data it
+                        // turns the steps into bright scratches.
+                        float ndl = saturate(dot(n, -rayDir));
+                        // Gentle, so the voxel steps in this data do not show as scratches.
+                        rgb *= 0.62 + 0.38 * ndl;
+                    }
+
+                    // Depth cue, no extra texture reads: surfaces farther along the ray are darker.
+                    float spanLen = max(length(rayDelta), 1e-5);
+                    float depthFrac = saturate(length(hitUV - startUV) / spanLen);
+                    rgb *= lerp(1.0, 1.0 - _DepthFade, depthFrac);
 
                     return fixed4(rgb, 1);
                 }

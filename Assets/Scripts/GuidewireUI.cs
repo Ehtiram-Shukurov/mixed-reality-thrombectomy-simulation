@@ -1,4 +1,5 @@
 ﻿using UnityEngine;
+using UnityEngine.UI;
 using TMPro;
 
 public class GuidewireUI : MonoBehaviour
@@ -7,16 +8,53 @@ public class GuidewireUI : MonoBehaviour
     public GuidewireSimulator guidewireSimulator;
     public FluoroController fluoroController;
     public SimulationManager simManager;
+    public ClotTarget clotTarget;
 
-    public TextMeshProUGUI phaseText;   
+    public TextMeshProUGUI phaseText;
     public TextMeshProUGUI fluoroText;  
-    public TextMeshProUGUI forkText;    
+    public TextMeshProUGUI forkText;
+    public TextMeshProUGUI instructionText; // one line of help for the current phase
+
+    [Header("Badges (optional rounded backgrounds)")]
+    public Image fluoroBadge;
+    public Image forkBadge;
+
+    private static readonly Color Dark = new Color(0.04f, 0.08f, 0.09f, 1f);
+    private static readonly Color Amber = new Color(0.98f, 0.75f, 0.14f, 0.95f);
+    private static readonly Color Green = new Color(0.30f, 0.85f, 0.50f, 0.95f);
+    private static readonly Color Coral = new Color(0.97f, 0.50f, 0.42f, 0.95f);
 
     void Update()
     {
         UpdatePhase();
+        UpdateInstruction();
         UpdateFluoro();
         UpdateFork();
+    }
+
+    private void UpdateInstruction()
+    {
+        if (instructionText == null || simManager == null) return;
+
+        string phase1 = "Press B to inject dye and find the clot. Push to advance. Twist at forks.";
+        if (clotTarget != null && clotTarget.IsTouched)
+            phase1 = "Wire is at the clot. Keep pushing to cross it.";
+        else if (clotTarget != null && clotTarget.IsRoadmapped)
+            phase1 = "Clot is marked in red. Steer the wire to it. Twist at forks.";
+
+        string stent = simManager.StentDeployed
+            ? "Stent is gripping the clot. Wait."
+            : "Catheter is past the clot. Press B to open the stent across it.";
+
+        instructionText.text = simManager.CurrentPhase switch
+        {
+            SimulationManager.SimPhase.Phase1_Navigation => phase1,
+            SimulationManager.SimPhase.Phase2a_CatheterAdvance => "Catheter follows the wire across the clot. Push forward.",
+            SimulationManager.SimPhase.Phase2b_StentDeploy => stent,
+            SimulationManager.SimPhase.Phase2c_Extraction => "Pull back slowly. Keep the pace bar green. It buzzes if you go too fast.",
+            SimulationManager.SimPhase.Phase3_Results => "Procedure complete.",
+            _ => ""
+        };
     }
 
     private void UpdatePhase()
@@ -38,34 +76,50 @@ public class GuidewireUI : MonoBehaviour
     {
         if (fluoroText == null || fluoroController == null) return;
 
-        if (fluoroController.IsActive)
-        {
-            fluoroText.gameObject.SetActive(true);
-            fluoroText.color = Color.yellow;
-            fluoroText.text = $"☢ FLUORO {fluoroController.TotalExposureTime:F1}s";
-        }
-        else
-        {
-            fluoroText.gameObject.SetActive(false);
-        }
+        bool on = fluoroController.IsActive;
+        fluoroText.gameObject.SetActive(on);
+        if (fluoroBadge != null) fluoroBadge.gameObject.SetActive(on);
+        if (!on) return;
+
+        fluoroText.color = fluoroBadge != null ? Dark : Color.yellow;
+        if (fluoroBadge != null) fluoroBadge.color = Amber;
+        string mode = fluoroController.ContrastActive ? "CONTRAST" : "X-RAY ON";
+        fluoroText.text = $"{mode}  {fluoroController.TotalExposureTime:F1} s";
     }
 
     private void UpdateFork()
     {
         if (forkText == null || guidewireSimulator == null) return;
 
-        if (!guidewireSimulator.IsReady || !guidewireSimulator.IsAtFork)
+        bool atFork = guidewireSimulator.IsReady && guidewireSimulator.IsAtFork;
+        bool deadEnd = guidewireSimulator.IsReady && guidewireSimulator.IsAtDeadEnd;
+        bool show = atFork || deadEnd;
+        forkText.gameObject.SetActive(show);
+        if (forkBadge != null) forkBadge.gameObject.SetActive(show);
+        if (!show) return;
+
+        if (deadEnd)
         {
-            forkText.gameObject.SetActive(false);
+            forkText.color = forkBadge != null ? Dark : Color.red;
+            if (forkBadge != null) forkBadge.color = Coral;
+            forkText.text = "<size=70%>DEAD END</size>\nPull back";
             return;
         }
 
-        forkText.gameObject.SetActive(true);
-
-        float signal = Mathf.Clamp01(1f - (guidewireSimulator.BestBranchAngle / 180f)) * 100f;
-        forkText.color = signal >= 80f ? Color.green
-                       : signal >= 50f ? Color.yellow
-                       : Color.red;
-        forkText.text = $"FORK  {signal:F0}%";
+        int dir = guidewireSimulator.TwistDirection;
+        bool hasBadge = forkBadge != null;
+        if (dir == 0)
+        {
+            forkText.color = hasBadge ? Dark : Color.green;
+            if (hasBadge) forkBadge.color = Green;
+            forkText.text = "<size=70%>ALIGNED</size>\nPush forward";
+        }
+        else
+        {
+            forkText.color = hasBadge ? Dark : Color.yellow;
+            if (hasBadge) forkBadge.color = Amber;
+            forkText.text = dir < 0 ? "<size=70%>FORK REACHED</size>\n<< Twist left"
+                                    : "<size=70%>FORK REACHED</size>\nTwist right >>";
+        }
     }
 }

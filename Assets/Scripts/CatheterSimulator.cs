@@ -27,6 +27,90 @@ public class CatheterSimulator : MonoBehaviour
     public bool IsAdvancing => _advancing;
     public bool IsRetracting => _retracting;
 
+    // How hard the stick is pulled compared with the allowed pace. Above 1 is too fast.
+    public float PaceRatio { get; private set; }
+    public bool IsTooFast { get; private set; }
+    private float _nextWarnSound;
+
+    // World direction the catheter is pointing along the path. Used to orient the stent.
+    public Vector3 TipDirection
+    {
+        get
+        {
+            if (_trail == null || _trail.Count < 2) return Vector3.up;
+            int i = Mathf.Clamp(_trailIndex + 1, 1, _trail.Count - 1);
+            return (TrailWorldPos(i) - TrailWorldPos(i - 1)).normalized;
+        }
+    }
+
+    // The point on the path that is `distance` meters behind the tip, measured along the path.
+    // dir is the direction of travel there (toward the tip). Used to place the stent and clot.
+    public Vector3 ArcPointBehindTip(float distance, out Vector3 dir)
+    {
+        dir = Vector3.up;
+        if (_trail == null || _trail.Count < 2 || catheterTipTransform == null)
+            return catheterTipTransform != null ? catheterTipTransform.position : Vector3.zero;
+
+        Vector3 cur = catheterTipTransform.position;
+        float remaining = Mathf.Max(0f, distance);
+        int i = Mathf.Clamp(_trailIndex, 0, _trail.Count - 1);
+
+        while (true)
+        {
+            Vector3 target = TrailWorldPos(i);
+            Vector3 along = cur - target;
+            float seg = along.magnitude;
+            if (seg > 1e-5f) dir = along / seg;
+
+            if (remaining <= seg) return cur - dir * remaining;
+
+            remaining -= seg;
+            cur = target;
+            if (i == 0)
+            {
+                if (_trail.Count > 1) dir = (TrailWorldPos(1) - TrailWorldPos(0)).normalized;
+                return cur;
+            }
+            i--;
+        }
+    }
+
+    // How far behind the tip (along the path) the path point nearest to worldPoint lies.
+    public float DistanceBehindTipTo(Vector3 worldPoint)
+    {
+        if (_trail == null || _trail.Count < 2 || catheterTipTransform == null) return 0f;
+
+        int nearest = 0;
+        float best = float.MaxValue;
+        for (int k = 0; k < _trail.Count; k++)
+        {
+            float d = (TrailWorldPos(k) - worldPoint).sqrMagnitude;
+            if (d < best) { best = d; nearest = k; }
+        }
+
+        int top = Mathf.Clamp(_trailIndex, 0, _trail.Count - 1);
+        if (nearest > top) return 0f;
+
+        float arc = Vector3.Distance(catheterTipTransform.position, TrailWorldPos(top));
+        for (int i = top; i > nearest; i--)
+            arc += Vector3.Distance(TrailWorldPos(i), TrailWorldPos(i - 1));
+        return arc;
+    }
+
+    // Used by restart: stop moving and clear the body.
+    public void ResetCatheter()
+    {
+        _advancing = false;
+        _retracting = false;
+        _speedWarningActive = false;
+        IsTooFast = false;
+        PaceRatio = 0f;
+        _trail = null;
+        _trailIndex = 0;
+        if (catheterBodyRenderer != null) catheterBodyRenderer.Clear();
+        HapticManager.Instance?.StopContinuous();
+    }
+
     public void BeginAdvance()
     {
         _trail = new List<Vector3>(guidewireSimulator.TrailPoints);
@@ -64,14 +148,14 @@ public class CatheterSimulator : MonoBehaviour
 
     private void HandleAdvance()
     {
-        Vector2 stick = OVRInput.Get(OVRInput.Axis2D.PrimaryThumbstick, OVRInput.Controller.RTouch);
+        Vector2 stick = SimInput.Stick;
         if (stick.y < 0.1f)
         {
             HapticManager.Instance?.StopContinuous();
             return;
         }
 
-        HapticManager.Instance?.StartContinuous(0.15f);
+        HapticManager.Instance?.Advancing();
         float step = Mathf.Min(stick.y * maxAdvanceSpeed, maxAdvanceSpeed) * Time.deltaTime;
         MoveTipForward(step);
     }
@@ -101,33 +185,49 @@ public class CatheterSimulator : MonoBehaviour
 
     private void HandleRetraction()
     {
-        Vector2 stick = OVRInput.Get(OVRInput.Axis2D.PrimaryThumbstick, OVRInput.Controller.RTouch);
+        Vector2 stick = SimInput.Stick;
         float input = -stick.y;
 
         if (input < 0.1f)
         {
             HapticManager.Instance?.StopContinuous();
             _speedWarningActive = false;
+            IsTooFast = false;
+            PaceRatio = 0f;
             return;
         }
 
         float requested = input * maxRetractSpeed * 3f;
         float actual = Mathf.Min(requested, maxRetractSpeed);
+        float limit = maxRetractSpeed * 1.1f;
+        PaceRatio = requested / limit;
 
-        if (requested > maxRetractSpeed * 1.1f)
+        if (requested > limit)
         {
+            IsTooFast = true;
             if (!_speedWarningActive)
             {
+                // One penalty per episode.
                 _speedWarningActive = true;
-                HapticManager.Instance?.PulseOnce(0.8f, 0.2f);
+                Feedback.SpeedWarning();
                 simManager?.AddExtractionPenalty(speedPenaltyPoints);
+                _nextWarnSound = Time.time + 0.6f;
                 Debug.Log("[CatheterSim] Speed warning.");
             }
+            else if (Time.time >= _nextWarnSound)
+            {
+                // Keep beeping while it stays too fast.
+                AudioCues.Instance?.Play(AudioCues.Cue.Warning);
+                _nextWarnSound = Time.time + 0.6f;
+            }
+            // Keep buzzing until the pace comes down.
+            HapticManager.Instance?.TooFast();
         }
         else
         {
+            IsTooFast = false;
             _speedWarningActive = false;
-            HapticManager.Instance?.StartContinuous(0.1f);
+            HapticManager.Instance?.Retracting();
         }
 
         MoveTipBackward(actual * Time.deltaTime);
