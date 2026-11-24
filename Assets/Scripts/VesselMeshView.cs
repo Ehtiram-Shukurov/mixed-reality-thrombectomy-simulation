@@ -1,4 +1,5 @@
 using System.Collections;
+using System.Collections.Generic;
 using System.IO;
 using UnityEngine;
 using UnityEngine.Networking;
@@ -19,9 +20,20 @@ public class VesselMeshView : MonoBehaviour
     public string fileName = "vessel_mesh.bytes";
 
     public bool IsLoaded { get; private set; }
+    // True once every vertex knows its nearest centerline node.
+    public bool MappingReady { get; private set; }
+    public MeshRenderer MeshRenderer => _meshRenderer;
+    public Material Material => _meshRenderer != null ? _meshRenderer.sharedMaterial : null;
 
     private Renderer _volumeRenderer;
     private MeshRenderer _meshRenderer;
+    private Mesh _mesh;
+    private int[] _vertexNode;
+    private readonly List<Vector2> _uv2 = new List<Vector2>();
+    private CenterlineLoader _centerlines;
+
+    // Stand-in for "never reached" in the shader.
+    public const float Unreached = 10000f;
 
     IEnumerator Start()
     {
@@ -52,6 +64,77 @@ public class VesselMeshView : MonoBehaviour
 
         if (data == null) yield break;
         Build(data);
+
+        // Link vertices to the centerline graph once it has loaded.
+        _centerlines = FindFirstObjectByType<CenterlineLoader>();
+        while (!VesselGraph.Ensure(_centerlines)) yield return new WaitForSeconds(0.2f);
+        MapVertices();
+    }
+
+    // Nearest centerline node for every vertex, using a coarse grid so it stays quick.
+    private void MapVertices()
+    {
+        var verts = _mesh.vertices;
+        int n = VesselGraph.Count;
+        const float cell = 0.03f;
+        var grid = new Dictionary<Vector3Int, List<int>>();
+        for (int i = 0; i < n; i++)
+        {
+            var key = Vector3Int.FloorToInt(VesselGraph.LocalPosition(i) / cell);
+            if (!grid.TryGetValue(key, out var list)) grid[key] = list = new List<int>();
+            list.Add(i);
+        }
+
+        _vertexNode = new int[verts.Length];
+        for (int v = 0; v < verts.Length; v++)
+        {
+            var c = Vector3Int.FloorToInt(verts[v] / cell);
+            int best = -1;
+            float bestD = float.MaxValue;
+            for (int r = 1; r <= 4 && best < 0; r++)
+            {
+                for (int x = -r; x <= r; x++)
+                for (int y = -r; y <= r; y++)
+                for (int z = -r; z <= r; z++)
+                {
+                    if (!grid.TryGetValue(new Vector3Int(c.x + x, c.y + y, c.z + z), out var list)) continue;
+                    foreach (int i in list)
+                    {
+                        float d = (VesselGraph.LocalPosition(i) - verts[v]).sqrMagnitude;
+                        if (d < bestD) { bestD = d; best = i; }
+                    }
+                }
+            }
+            if (best < 0)
+            {
+                for (int i = 0; i < n; i++)
+                {
+                    float d = (VesselGraph.LocalPosition(i) - verts[v]).sqrMagnitude;
+                    if (d < bestD) { bestD = d; best = i; }
+                }
+            }
+            _vertexNode[v] = best;
+        }
+
+        for (int v = 0; v < verts.Length; v++) _uv2.Add(new Vector2(Unreached, Unreached));
+        _mesh.SetUVs(1, _uv2);
+        MappingReady = true;
+        Debug.Log($"[VesselMesh] Mapped {verts.Length} vertices to {n} centerline nodes.");
+    }
+
+    // Per-node distances along the vessels: x = blood flow from the heart end,
+    // y = dye from the injection point. Infinity means never reached (beyond the clot).
+    public void SetDistances(float[] flowDist, float[] dyeDist)
+    {
+        if (!MappingReady) return;
+        for (int v = 0; v < _vertexNode.Length; v++)
+        {
+            int k = _vertexNode[v];
+            float f = flowDist != null && k >= 0 && !float.IsInfinity(flowDist[k]) ? flowDist[k] : Unreached;
+            float d = dyeDist != null && k >= 0 && !float.IsInfinity(dyeDist[k]) ? dyeDist[k] : Unreached;
+            _uv2[v] = new Vector2(f, d);
+        }
+        _mesh.SetUVs(1, _uv2);
     }
 
     private void Build(byte[] data)
@@ -74,6 +157,7 @@ public class VesselMeshView : MonoBehaviour
         mesh.triangles = indices;
         mesh.RecalculateNormals();
         mesh.RecalculateBounds();
+        _mesh = mesh;
 
         // Child of the volume with no offset: the mesh is already in the volume's local space.
         // No collider, so the grab on the volume is not affected.
@@ -95,9 +179,10 @@ public class VesselMeshView : MonoBehaviour
     {
         if (!IsLoaded || loader.volumeMaterial == null) return;
 
+        // Only holding A turns the main view into X-ray. Dye runs show on the mesh and the monitor.
         int mode = Mathf.RoundToInt(loader.volumeMaterial.GetFloat("_RenderMode"));
-        bool imaging = fluoro != null && fluoro.IsActive;
-        bool meshOn = mode == meshRenderMode && !imaging;
+        bool xrayView = fluoro != null && fluoro.MainViewXRay;
+        bool meshOn = !xrayView && mode == meshRenderMode;
 
         _meshRenderer.enabled = meshOn;
         if (_volumeRenderer != null) _volumeRenderer.enabled = !meshOn;

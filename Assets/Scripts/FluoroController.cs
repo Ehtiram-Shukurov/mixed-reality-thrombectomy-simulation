@@ -1,52 +1,62 @@
 using UnityEngine;
 
-// X-ray imaging. Hold A for plain fluoroscopy: bones and soft tissue, vessels barely show.
-// Press left X to inject contrast dye: the vessels light up for a few seconds and the clot
-// shows as a gap in the dye. Both count as imaging time.
+// X-ray imaging. Hold A to turn your main view into plain fluoroscopy: bones and soft
+// tissue, vessels barely show. Press B (or left X) to inject contrast dye: it flows through
+// the vessels for a few seconds and the clot shows as the place where it stops. The dye
+// shows on the vessel model and on the X-ray monitor; your main view only changes while A
+// is held. Both count as imaging time.
 public class FluoroController : MonoBehaviour
 {
     [Header("References")]
     public DicomVolumeLoader dicomLoader;
 
     [Header("Fluoro Shader Mode")]
-    [Tooltip("The _RenderMode value that gives the X-ray / segmentation view. " +
-             "Mode 6 was confirmed working in the old CatheterController.")]
+    [Tooltip("The _RenderMode value that gives the X-ray view.")]
     public int fluoroRenderMode = 6;
 
     [Header("Contrast")]
-    [Tooltip("How long one injection lights up the vessels, in seconds.")]
+    [Tooltip("How long one injection lasts, in seconds.")]
     public float contrastSeconds = 5f;
     [Tooltip("How faintly the vessels show on plain fluoroscopy without dye (0 to 1).")]
     [Range(0f, 1f)] public float plainVesselVisibility = 0.05f;
     [Tooltip("Dye fades in and out over this many seconds.")]
     public float contrastFade = 0.4f;
 
-    // Public state, read by SimulationManager, GuidewireUI and ClotTarget
+    // Imaging is on: A held or a dye run going. Counts toward X-ray time.
     public bool IsActive { get; private set; } = false;
+    // The main view is showing X-ray (only while A is held).
+    public bool MainViewXRay { get; private set; } = false;
     public float TotalExposureTime { get; private set; } = 0f;
     public bool ContrastActive => _contrastLeft > 0f;
     public int ContrastRuns { get; private set; } = 0;
+    // Seconds since the current injection started.
+    public float ContrastElapsed => ContrastActive ? contrastSeconds - _contrastLeft : 0f;
     // 1 right after an injection, falling to 0 as the dye washes out.
     public float ContrastRemaining01 => contrastSeconds <= 0f ? 0f : Mathf.Clamp01(_contrastLeft / contrastSeconds);
+    // Vessel visibility for the X-ray rendering right now (plain level up to 1 with dye).
+    public float ContrastLevel { get; private set; }
+
+    // Raised when an injection starts. Listeners start the dye animation.
+    public event System.Action ContrastStarted;
 
     private const string ContrastProperty = "_Contrast";
 
-    // The render mode that was active before fluoro. Restored on release.
     private int _previousRenderMode = 0;
     private float _contrastLeft;
-    private float _contrastLevel;
-
     private SimulationManager _sim;
 
     void Start()
     {
         _sim = FindFirstObjectByType<SimulationManager>();
+        ContrastLevel = plainVesselVisibility;
     }
 
     // B is the stent button once the catheter is at the clot, so no dye then.
     private bool ContrastAllowed()
     {
         if (_sim == null) return true;
+        // The B press that just started a pass or a new case is not a dye injection.
+        if (_sim.PhaseChangedFrame == Time.frameCount) return false;
         var p = _sim.CurrentPhase;
         return p == SimulationManager.SimPhase.Phase1_Navigation
             || p == SimulationManager.SimPhase.Phase2a_CatheterAdvance
@@ -55,27 +65,27 @@ public class FluoroController : MonoBehaviour
 
     void Update()
     {
-        bool pressed = SimInput.ContrastPressed;
-        if (pressed && ContrastAllowed() && !ContrastActive)
-        {
-            _contrastLeft = contrastSeconds;
-            ContrastRuns++;
-            Feedback.ContrastInjected();
-        }
+        if (SimInput.ContrastPressed && ContrastAllowed() && !ContrastActive) Inject();
         if (_contrastLeft > 0f) _contrastLeft = Mathf.Max(0f, _contrastLeft - Time.deltaTime);
 
-        bool wantImaging = SimInput.FluoroHeld || ContrastActive;
+        bool aHeld = SimInput.FluoroHeld;
+        if (aHeld && !MainViewXRay) SwitchMainToXRay();
+        else if (!aHeld && MainViewXRay) RestoreMainView();
 
-        if (wantImaging && !IsActive)
-            ActivateFluoro();
-        else if (!wantImaging && IsActive)
-            DeactivateFluoro();
+        IsActive = aHeld || ContrastActive;
+        if (IsActive) TotalExposureTime += Time.deltaTime;
 
-        if (IsActive)
-        {
-            TotalExposureTime += Time.deltaTime;
-            UpdateContrastLevel();
-        }
+        UpdateContrastLevel();
+        if (MainViewXRay) SetMainContrast(ContrastLevel);
+    }
+
+    // Starts a dye run. Also used by the control angiogram after extraction.
+    public void Inject()
+    {
+        _contrastLeft = contrastSeconds;
+        ContrastRuns++;
+        Feedback.ContrastInjected();
+        ContrastStarted?.Invoke();
     }
 
     // Fade the dye in at the start and out at the end of a run.
@@ -89,44 +99,35 @@ public class FluoroController : MonoBehaviour
             float fadeOut = contrastFade <= 0f ? 1f : Mathf.Clamp01(_contrastLeft / contrastFade);
             target = Mathf.Min(fadeIn, fadeOut);
         }
-        _contrastLevel = Mathf.Lerp(plainVesselVisibility, 1f, target);
-        SetContrast(_contrastLevel);
+        ContrastLevel = Mathf.Lerp(plainVesselVisibility, 1f, target);
     }
 
-    private void SetContrast(float value)
+    private void SetMainContrast(float value)
     {
         if (dicomLoader != null && dicomLoader.volumeMaterial != null && dicomLoader.volumeMaterial.HasProperty(ContrastProperty))
             dicomLoader.volumeMaterial.SetFloat(ContrastProperty, value);
     }
 
-    private void ActivateFluoro()
+    private void SwitchMainToXRay()
     {
         if (dicomLoader == null || dicomLoader.volumeMaterial == null) return;
-
-        // Store current mode so we can restore it exactly on release
         _previousRenderMode = dicomLoader.volumeMaterial.GetInt("_RenderMode");
         dicomLoader.UpdateSegmentationMode(fluoroRenderMode);
-        SetContrast(plainVesselVisibility);
-
-        IsActive = true;
-        Debug.Log("[Fluoro] Activated.");
+        MainViewXRay = true;
     }
 
-    private void DeactivateFluoro()
+    private void RestoreMainView()
     {
         if (dicomLoader == null) return;
-
         dicomLoader.UpdateSegmentationMode(_previousRenderMode);
-        SetContrast(1f);
-
-        IsActive = false;
-        Debug.Log($"[Fluoro] Deactivated. Total exposure: {TotalExposureTime:F1}s");
+        SetMainContrast(1f);
+        MainViewXRay = false;
     }
 
     void OnDisable()
     {
         // Leave the shared material the way the shader expects it.
-        SetContrast(1f);
+        SetMainContrast(1f);
     }
 
     // Call this at the start of a new simulation run.
@@ -135,6 +136,5 @@ public class FluoroController : MonoBehaviour
         TotalExposureTime = 0f;
         ContrastRuns = 0;
         _contrastLeft = 0f;
-        Debug.Log("[Fluoro] Timer reset.");
     }
 }

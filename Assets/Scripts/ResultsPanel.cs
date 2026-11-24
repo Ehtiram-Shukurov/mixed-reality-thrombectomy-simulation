@@ -40,7 +40,7 @@ public class ResultsPanel : MonoBehaviour
     }
 
     public void ShowResults(float totalTime, float fluoroSeconds, string rating, Color ratingColor,
-                            int wrongTurns, int deadEnds, int contrastRuns = 0)
+                            int wrongTurns, int deadEnds, int contrastRuns = 0, int forcedBends = 0)
     {
         int min = Mathf.FloorToInt(totalTime / 60f);
         int sec = Mathf.FloorToInt(totalTime % 60f);
@@ -55,7 +55,7 @@ public class ResultsPanel : MonoBehaviour
         }
         if (routeText != null)
         {
-            routeText.text = $"<size=85%><color=#8B96A5>Wrong turns</color> {wrongTurns}   <color=#8B96A5>Dead ends</color> {deadEnds}   <color=#8B96A5>Contrast</color> {contrastRuns}</size>";
+            routeText.text = $"<size=80%><color=#8B96A5>Wrong turns</color> {wrongTurns}  <color=#8B96A5>Dead ends</color> {deadEnds}  <color=#8B96A5>Forced</color> {forcedBends}  <color=#8B96A5>Dye</color> {contrastRuns}</size>";
         }
 
         // The phase card sits in the same spot, so hide it while results show.
@@ -66,6 +66,16 @@ public class ResultsPanel : MonoBehaviour
         if (toggle != null) toggle.SetIsOnWithoutNotify(false);
 
         gameObject.SetActive(true);
+    }
+
+    // Outcome line in the panel's title: reopened or still blocked, and how many passes.
+    public void ShowOutcome(string text, bool good)
+    {
+        var title = transform.Find("Title");
+        var tmp = title != null ? title.GetComponent<TextMeshProUGUI>() : null;
+        if (tmp == null) return;
+        tmp.text = text;
+        tmp.color = good ? new Color(0.30f, 0.85f, 0.50f) : new Color(0.97f, 0.50f, 0.42f);
     }
 
     void OnDisable()

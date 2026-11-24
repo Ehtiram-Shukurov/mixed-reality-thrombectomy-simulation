@@ -45,7 +45,9 @@ public class SimulationAutoplay : MonoBehaviour
 
         SimInput.UseOverride = true;
         Time.timeScale = timeScale;
-        Log("start: clot node " + _clot.ClotNode.id + ", phase " + _sm.CurrentPhase);
+        Log("start: clot node " + _clot.ClotNode.id + ", case " + _clot.CaseLabel + ", phase " + _sm.CurrentPhase);
+
+        yield return CheckDyeAndRoadmap();
 
         yield return RunOnce(takeWrongTurn);
 
@@ -57,6 +59,12 @@ public class SimulationAutoplay : MonoBehaviour
         Log("after Play Again: phase " + _sm.CurrentPhase + ", depth " + _gw.HistoryDepth
             + ", trail " + _gw.TrailPoints.Count + ", atFork " + _gw.IsAtFork
             + ", panelActive " + _rp.gameObject.activeSelf + ", new clot node " + _clot.ClotNode.id);
+
+        // Second run on the same case: a rough first pass that should leave a fragment,
+        // then another pass that reopens the vessel.
+        yield return new WaitForSecondsRealtime(0.5f);
+        Log("second run, same case: clot node " + _clot.ClotNode.id + " (" + _clot.CaseLabel + ")");
+        yield return RunOnce(false, true);
 
         if (testRestartHold)
         {
@@ -87,7 +95,46 @@ public class SimulationAutoplay : MonoBehaviour
         Log("done");
     }
 
-    private IEnumerator RunOnce(bool wrongTurn)
+    // Dye run, vessel mesh mapping, roadmap on the monitor.
+    private IEnumerator CheckDyeAndRoadmap()
+    {
+        var fluoro = FindFirstObjectByType<FluoroController>();
+        var mesh = FindFirstObjectByType<VesselMeshView>();
+        var mon = FindFirstObjectByType<XRayMonitor>();
+        var dye = FindFirstObjectByType<DyeFlow>();
+
+        float t0 = Time.realtimeSinceStartup;
+        while (mesh != null && !mesh.MappingReady && Time.realtimeSinceStartup - t0 < 20f) yield return null;
+        Log("vessel mesh loaded " + (mesh != null && mesh.IsLoaded) + ", mapped " + (mesh != null && mesh.MappingReady)
+            + ", graph nodes " + VesselGraph.Count + ", dye component " + (dye != null) + ", monitor " + (mon != null));
+
+        SimInput.ContrastOverride = true;
+        yield return null;
+        yield return null;
+        Log("after B: contrast active " + fluoro.ContrastActive + ", runs " + fluoro.ContrastRuns
+            + ", imaging " + fluoro.IsActive + ", main view X-ray " + fluoro.MainViewXRay + " (should be false)");
+
+        float front = 0f;
+        var mat = mesh != null ? mesh.Material : null;
+        t0 = Time.time;
+        while (fluoro.ContrastActive && Time.time - t0 < 10f)
+        {
+            if (mat != null) front = Mathf.Max(front, mat.GetFloat("_DyeFront"));
+            yield return null;
+        }
+        Log("dye run ended: max dye front " + front.ToString("F2") + " volume sizes, clot roadmapped " + _clot.IsRoadmapped);
+
+        SimInput.FluoroOverride = true;
+        yield return null;
+        yield return null;
+        Log("hold A: main view X-ray " + fluoro.MainViewXRay + ", monitor roadmap showing " + (mon != null && mon.RoadmapShowing));
+        SimInput.FluoroOverride = false;
+        yield return null;
+        yield return null;
+        Log("release A: main view X-ray " + fluoro.MainViewXRay);
+    }
+
+    private IEnumerator RunOnce(bool wrongTurn, bool rough = false)
     {
         // ---- Phase 1: guidewire ----
         float t0 = Time.time;
@@ -148,6 +195,8 @@ public class SimulationAutoplay : MonoBehaviour
         Log("phase 1 done in " + (Time.time - t0).ToString("F1") + " s, fork visits " + forkVisits
             + ", trail " + _gw.TrailPoints.Count + " depth " + _gw.HistoryDepth + ", phase now " + _sm.CurrentPhase);
 
+        for (int pass = 1; pass <= 3; pass++)
+        {
         // ---- Phase 2a: catheter advance ----
         t0 = Time.time;
         while (_sm.CurrentPhase == SimulationManager.SimPhase.Phase2a_CatheterAdvance && Time.time - t0 < 300f)
@@ -155,21 +204,25 @@ public class SimulationAutoplay : MonoBehaviour
             SimInput.StickOverride = new Vector2(0f, 1f);
             yield return null;
         }
-        Log("phase 2a done, phase now " + _sm.CurrentPhase);
+        Log("pass " + pass + ": phase 2a done, phase now " + _sm.CurrentPhase);
 
         // ---- Phase 2b: stent ----
         t0 = Time.time;
         while (_sm.CurrentPhase == SimulationManager.SimPhase.Phase2b_StentDeploy && Time.time - t0 < 20f)
         {
             SimInput.StickOverride = Vector2.zero;
-            SimInput.StentOverride = true;
+            // Press once; a held override would leak into later phases as a stale B press.
+            if (!_sm.StentDeployed) SimInput.StentOverride = true;
             yield return null;
         }
+        SimInput.StentOverride = false;
         var stent = FindFirstObjectByType<StentVisual>();
         Log("stent deployed, phase now " + _sm.CurrentPhase + ", clot rides tip " + (_clot != null)
             + ", stent object " + (stent != null));
 
-        // ---- Phase 2c: extraction. Pull too fast at first to trigger a warning. ----
+        // ---- Phase 2c: extraction. Careful runs pull too fast once at the start (one warning);
+        // the rough first pass pulls in bursts so several warnings leave a fragment. ----
+        bool roughNow = rough && pass == 1;
         t0 = Time.time;
         bool clotVisibleSeen = false;
         bool sawTooFast = false, sawOk = false;
@@ -179,7 +232,9 @@ public class SimulationAutoplay : MonoBehaviour
         string paceTextFast = "", paceTextOk = "";
         while (_sm.CurrentPhase == SimulationManager.SimPhase.Phase2c_Extraction && Time.time - t0 < 400f)
         {
-            float push = (Time.time - t0) < 1.5f ? 1f : 0.3f;
+            float push = roughNow
+                ? (((Time.time - t0) % 1.0f) < 0.5f ? 1f : 0f)
+                : ((Time.time - t0) < 1.5f ? 1f : 0.3f);
             SimInput.StickOverride = new Vector2(0f, -push);
             var r = _clot.GetComponent<Renderer>();
             if (r != null && r.enabled) clotVisibleSeen = true;
@@ -191,6 +246,30 @@ public class SimulationAutoplay : MonoBehaviour
         Log("extraction done, phase now " + _sm.CurrentPhase + ", clot was visible on tip " + clotVisibleSeen);
         Log("pace: too fast seen " + sawTooFast + " (max ratio " + maxPace.ToString("F2") + ", meter alpha " + paceAlphaFast.ToString("F2") + ", text '" + paceTextFast + "'); "
             + "ok pace seen " + sawOk + " (ratio " + minPaceOk.ToString("F2") + ", meter alpha " + paceAlphaOk.ToString("F2") + ", text '" + paceTextOk + "')");
+
+        // ---- Control angiogram: wait for it. If a fragment is left, take another pass (B). ----
+        t0 = Time.time;
+        bool another = false;
+        while (_sm.CurrentPhase == SimulationManager.SimPhase.Phase2d_ControlAngio && Time.time - t0 < 30f)
+        {
+            if (_sm.AngioDone && _sm.CanTryAgain && !another)
+            {
+                Log("control angiogram after pass " + pass + ": " + _sm.OutcomeText
+                    + ", fragment hidden until dye: " + !_clot.GetComponent<Renderer>().enabled);
+                SimInput.StentOverride = true;
+                another = true;
+            }
+            yield return null;
+        }
+        SimInput.StentOverride = false;
+        if (another && _sm.CurrentPhase == SimulationManager.SimPhase.Phase2a_CatheterAdvance)
+        {
+            Log("pressed B: another pass, phase now " + _sm.CurrentPhase);
+            continue;
+        }
+        Log("control angiogram done: " + _sm.OutcomeText + ", phase now " + _sm.CurrentPhase);
+        break;
+        }
 
         // ---- Phase 3 ----
         yield return new WaitForSecondsRealtime(0.5f);

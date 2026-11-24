@@ -52,9 +52,20 @@ public class GuidewireUI : MonoBehaviour
             SimulationManager.SimPhase.Phase2a_CatheterAdvance => "Catheter follows the wire across the clot. Push forward.",
             SimulationManager.SimPhase.Phase2b_StentDeploy => stent,
             SimulationManager.SimPhase.Phase2c_Extraction => "Pull back slowly. Keep the pace bar green. It buzzes if you go too fast.",
-            SimulationManager.SimPhase.Phase3_Results => "Procedure complete.",
+            SimulationManager.SimPhase.Phase2d_ControlAngio => AngioText(),
+            SimulationManager.SimPhase.Phase3_Results => "Your route: green on track, amber off track, red mistakes. A: same case. B: next case.",
             _ => ""
         };
+    }
+
+    // Control angiogram after a pass: watch the dye, then the result and the choice.
+    private string AngioText()
+    {
+        if (!simManager.AngioDone) return "Control angiogram. Watch where the dye goes.";
+        if (simManager.Reopened) return "Dye flows past. The vessel is open.";
+        return simManager.CanTryAgain
+            ? "Dye still stops at a piece of clot. B: another pass. A: finish."
+            : "Dye still stops at a piece of clot. No passes left.";
     }
 
     private void UpdatePhase()
@@ -67,6 +78,7 @@ public class GuidewireUI : MonoBehaviour
             SimulationManager.SimPhase.Phase2a_CatheterAdvance => "Catheter",
             SimulationManager.SimPhase.Phase2b_StentDeploy => "Deploy Stent",
             SimulationManager.SimPhase.Phase2c_Extraction => "Extraction",
+            SimulationManager.SimPhase.Phase2d_ControlAngio => "Check",
             SimulationManager.SimPhase.Phase3_Results => "Complete",
             _ => ""
         };
@@ -93,10 +105,19 @@ public class GuidewireUI : MonoBehaviour
 
         bool atFork = guidewireSimulator.IsReady && guidewireSimulator.IsAtFork;
         bool deadEnd = guidewireSimulator.IsReady && guidewireSimulator.IsAtDeadEnd;
-        bool show = atFork || deadEnd;
+        bool bend = guidewireSimulator.IsReady && guidewireSimulator.enabled && guidewireSimulator.BendAmount > 0.3f;
+        bool show = atFork || deadEnd || bend;
         forkText.gameObject.SetActive(show);
         if (forkBadge != null) forkBadge.gameObject.SetActive(show);
         if (!show) return;
+
+        if (bend && !atFork && !deadEnd)
+        {
+            forkText.color = forkBadge != null ? Dark : Color.yellow;
+            if (forkBadge != null) forkBadge.color = Amber;
+            forkText.text = "<size=70%>TIGHT BEND</size>\nEase off";
+            return;
+        }
 
         if (deadEnd)
         {

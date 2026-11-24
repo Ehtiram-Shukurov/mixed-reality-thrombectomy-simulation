@@ -3,7 +3,7 @@ using UnityEngine;
 // Short sound cues, generated in code (the project has no audio files).
 public class AudioCues : MonoBehaviour
 {
-    public enum Cue { Tick, Fork, DeadEnd, Clot, Warning, Stent, Success, Phase }
+    public enum Cue { Tick, Fork, DeadEnd, Clot, Warning, Stent, Success, Phase, Injection, Click }
 
     public static AudioCues Instance { get; private set; }
 
@@ -22,7 +22,9 @@ public class AudioCues : MonoBehaviour
         _source.playOnAwake = false;
         _source.spatialBlend = 0f;
 
-        _clips = new AudioClip[8];
+        _clips = new AudioClip[System.Enum.GetValues(typeof(Cue)).Length];
+        _clips[(int)Cue.Injection] = MakeWhoosh("injection", 0.9f, 0.35f);
+        _clips[(int)Cue.Click] = MakeClick("click", 0.6f);
         _clips[(int)Cue.Tick] = Make("tick", new[] { 1200f }, 0.03f, 0.5f, false);
         _clips[(int)Cue.Fork] = Make("fork", new[] { 660f, 880f }, 0.07f, 0.6f, false);
         _clips[(int)Cue.DeadEnd] = Make("deadend", new[] { 220f, 165f }, 0.11f, 0.5f, true);
@@ -43,6 +45,45 @@ public class AudioCues : MonoBehaviour
         if (_source == null || _clips == null) return;
         var clip = _clips[(int)cue];
         if (clip != null) _source.PlayOneShot(clip, volume);
+    }
+
+    // Soft noise that swells and fades, with the brightness falling: a syringe push.
+    private static AudioClip MakeWhoosh(string name, float seconds, float gain)
+    {
+        int n = Mathf.RoundToInt(SampleRate * seconds);
+        var data = new float[n];
+        var rng = new System.Random(7);
+        float low = 0f;
+        for (int i = 0; i < n; i++)
+        {
+            float t = i / (float)n;
+            float white = (float)(rng.NextDouble() * 2.0 - 1.0);
+            float cutoff = Mathf.Lerp(0.25f, 0.03f, t);  // one-pole low-pass, closing over time
+            low += cutoff * (white - low);
+            float env = Mathf.Clamp01(t / 0.18f) * (1f - Mathf.SmoothStep(0.35f, 1f, t));
+            data[i] = low * env * gain * 2.5f;
+        }
+        var clip = AudioClip.Create(name, n, 1, SampleRate, false);
+        clip.SetData(data, 0);
+        return clip;
+    }
+
+    // A short dry click, like a device locking open.
+    private static AudioClip MakeClick(string name, float gain)
+    {
+        int n = Mathf.RoundToInt(SampleRate * 0.04f);
+        var data = new float[n];
+        var rng = new System.Random(3);
+        for (int i = 0; i < n; i++)
+        {
+            float decay = Mathf.Exp(-i / (SampleRate * 0.004f));
+            float tone = Mathf.Sin(2f * Mathf.PI * 2400f * i / SampleRate);
+            float noise = (float)(rng.NextDouble() * 2.0 - 1.0);
+            data[i] = (tone * 0.6f + noise * 0.4f) * decay * gain;
+        }
+        var clip = AudioClip.Create(name, n, 1, SampleRate, false);
+        clip.SetData(data, 0);
+        return clip;
     }
 
     // Plays each frequency in turn, with a quick attack and a decay.

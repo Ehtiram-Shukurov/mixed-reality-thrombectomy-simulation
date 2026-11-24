@@ -20,6 +20,7 @@ public class PhaseStepper : MonoBehaviour
     public float fadeSpeed = 8f;
 
     private int _lastStep = -1;
+    private ClotTarget _clot;
     private float _punch;
 
     void Update()
@@ -38,7 +39,11 @@ public class PhaseStepper : MonoBehaviour
         }
 
         if (stepLabel != null)
-            stepLabel.text = step < segments.Length ? $"Step {step + 1} of {segments.Length}" : "Complete";
+        {
+            if (_clot == null) _clot = FindFirstObjectByType<ClotTarget>();
+            string caseText = _clot != null && _clot.CaseLabel.Length > 0 ? "  ·  " + _clot.CaseLabel : "";
+            stepLabel.text = (step < segments.Length ? $"Step {step + 1} of {segments.Length}" : "Complete") + caseText;
+        }
 
         // Pop on phase change.
         _punch = Mathf.MoveTowards(_punch, 0f, Time.unscaledDeltaTime * 4f);
@@ -61,6 +66,7 @@ public class PhaseStepper : MonoBehaviour
             case SimulationManager.SimPhase.Phase2a_CatheterAdvance: return 1;
             case SimulationManager.SimPhase.Phase2b_StentDeploy: return 2;
             case SimulationManager.SimPhase.Phase2c_Extraction: return 3;
+            case SimulationManager.SimPhase.Phase2d_ControlAngio: return 3;
             case SimulationManager.SimPhase.Phase3_Results: return 4;
             default: return 0;
         }
