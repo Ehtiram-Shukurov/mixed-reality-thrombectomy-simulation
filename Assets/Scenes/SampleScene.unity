@@ -2985,6 +2985,7 @@ MonoBehaviour:
   centerlines: {fileID: 1634681678}
   fillSeconds: 3
   dyeFeather: 0.04
+  washSeconds: 2
   showFlow: 1
   mapSize: {x: 96, y: 96, z: 48}
   mapRadius: 0.045
@@ -15944,6 +15945,11 @@ MonoBehaviour:
   fieldOfView: 48
   distance: 1.25
   useProjection: 1
+  cArmAngles:
+  - 0
+  - 30
+  - -30
+  tapSeconds: 0.35
   grainLive: 0.05
   grainDsa: 0.07
   blur: 1
@@ -22592,6 +22598,7 @@ MonoBehaviour:
   diameter: 0.012
   growSeconds: 0.4
   color: {r: 0.18, g: 0.83, b: 0.75, a: 0.9}
+  markerSize: 0.006
 --- !u!4 &1279756908
 Transform:
   m_ObjectHideFlags: 0
@@ -25841,6 +25848,10 @@ PrefabInstance:
     - target: {fileID: 6819193313518456873, guid: d20e5167c9cb0324ca767fde91f2f10f, type: 3}
       propertyPath: m_Constraint
       value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 6819193313518456873, guid: d20e5167c9cb0324ca767fde91f2f10f, type: 3}
+      propertyPath: m_ConstraintCount
+      value: 3
       objectReference: {fileID: 0}
     - target: {fileID: 6819193313518456874, guid: d20e5167c9cb0324ca767fde91f2f10f, type: 3}
       propertyPath: m_SizeDelta.x

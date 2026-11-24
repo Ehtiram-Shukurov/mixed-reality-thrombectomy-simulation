@@ -23,6 +23,7 @@ Shader "Custom/VesselGlass"
         [Header(Dye)]
         _DyeColor ("Dye Color", Color) = (0.85, 0.97, 1.0, 1)
         _DyeFront ("Dye front distance", Float) = 0
+        _DyeTail ("Dye washed out up to", Float) = 0
         _DyeAlpha ("Dye amount", Range(0, 1)) = 0
         _DyeFeather ("Dye front softness", Float) = 0.04
     }
@@ -44,7 +45,7 @@ Shader "Custom/VesselGlass"
             half4 _Color, _RimColor, _DyeColor;
             half _CenterAlpha, _EdgeAlpha, _RimPower;
             half _FlowOn, _FlowStrength, _FlowFreq, _FlowSpeed, _NoFlowDim;
-            float _DyeFront, _DyeAlpha, _DyeFeather;
+            float _DyeFront, _DyeTail, _DyeAlpha, _DyeFeather;
 
             // Matches VesselMeshView.Unreached.
             #define UNREACHED 9000.0
@@ -114,6 +115,8 @@ Shader "Custom/VesselGlass"
                 if (_DyeAlpha > 0.001 && i.dist.y < UNREACHED)
                 {
                     half dye = saturate((_DyeFront - i.dist.y) / max(_DyeFeather, 1e-4)) * _DyeAlpha;
+                    // Washout: vessels behind the tail have already cleared.
+                    dye *= saturate((i.dist.y - _DyeTail) / max(_DyeFeather, 1e-4) + (_DyeTail <= 0 ? 1 : 0));
                     // A brighter band right at the front makes the movement easy to follow.
                     half edge = saturate(1.0 - abs(_DyeFront - i.dist.y) / max(_DyeFeather * 2.0, 1e-4)) * _DyeAlpha;
                     col = lerp(col, _DyeColor.rgb, dye * 0.85) + _DyeColor.rgb * edge * 0.35;

@@ -95,7 +95,16 @@ Shader "Custom/DICOM_Volume_MIP_VR_Stable"
             // Dye map set by DyeFlow as globals (deliberately not in Properties).
             // Each cell holds the distance along the vessels from the heart end; 10000 = no flow.
             sampler3D _VolDyeTex;
-            float _VolDyeOn, _VolDyeFront, _VolDyeFeather, _VolDyePlain;
+            float _VolDyeOn, _VolDyeFront, _VolDyeFeather, _VolDyePlain, _VolDyeTail;
+
+            // How much dye is at a point with distance dd along the vessels: arrived, not yet washed out.
+            float DyeReach(float dd)
+            {
+                float f = max(_VolDyeFeather, 1e-4);
+                float arrived = saturate((_VolDyeFront - dd) / f);
+                float notGone = _VolDyeTail > 0 ? saturate((dd - _VolDyeTail) / f) : 1.0;
+                return arrived * notGone;
+            }
             half _DepthFade;
             half _Shading;
             half _Jitter;
@@ -272,8 +281,7 @@ Shader "Custom/DICOM_Volume_MIP_VR_Stable"
                                 if (_VolDyeOn > 0.5)
                                 {
                                     float dd = tex3Dlod(_VolDyeTex, float4(uv, 0)).r;
-                                    float reach = saturate((_VolDyeFront - dd) / max(_VolDyeFeather, 1e-4));
-                                    c = lerp(_VolDyePlain, _Contrast, reach);
+                                    c = lerp(_VolDyePlain, _Contrast, DyeReach(dd));
                                 }
                                 densityToAdd = c;
                             } 
@@ -297,8 +305,7 @@ Shader "Custom/DICOM_Volume_MIP_VR_Stable"
                             if (label7 >= 22 && label7 <= 29 && _VolDyeOn > 0.5)
                             {
                                 float dd7 = tex3Dlod(_VolDyeTex, float4(uv, 0)).r;
-                                float reach7 = saturate((_VolDyeFront - dd7) / max(_VolDyeFeather, 1e-4));
-                                mu += _Contrast * reach7 * _DrrDye;
+                                mu += _Contrast * DyeReach(dd7) * _DrrDye;
                             }
                             cumulative_density += mu;
                         }

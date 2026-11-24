@@ -25,6 +25,11 @@ public class DyeFlow : MonoBehaviour
     public float fillSeconds = 3f;
     [Tooltip("Softness of the dye front, in volume sizes.")]
     public float dyeFeather = 0.04f;
+    [Tooltip("Seconds for the dye to wash out after the fill, nearest vessels first.")]
+    public float washSeconds = 2f;
+
+    // Behind this distance the dye has already washed out.
+    public float DyeTail { get; private set; }
 
     [Header("Blood flow")]
     public bool showFlow = true;
@@ -68,6 +73,8 @@ public class DyeFlow : MonoBehaviour
     private static readonly int VolDyeTexId = Shader.PropertyToID("_VolDyeTex");
     private static readonly int VolDyeOnId = Shader.PropertyToID("_VolDyeOn");
     private static readonly int VolDyeFrontId = Shader.PropertyToID("_VolDyeFront");
+    private static readonly int VolDyeTailId = Shader.PropertyToID("_VolDyeTail");
+    private static readonly int DyeTailId = Shader.PropertyToID("_DyeTail");
     private static readonly int VolDyeFeatherId = Shader.PropertyToID("_VolDyeFeather");
     private static readonly int VolDyePlainId = Shader.PropertyToID("_VolDyePlain");
 
@@ -198,19 +205,25 @@ public class DyeFlow : MonoBehaviour
         float alpha = 0f;
         if (_dyeStart >= 0f && fluoro != null && fluoro.ContrastActive)
         {
-            DyeFront = (Time.time - _dyeStart) / Mathf.Max(0.1f, fillSeconds) * (MaxReach + dyeFeather);
-            alpha = Mathf.Clamp01(fluoro.ContrastRemaining01 * 3f); // wash out over the last third
+            float elapsed = Time.time - _dyeStart;
+            float span = MaxReach + dyeFeather;
+            DyeFront = elapsed / Mathf.Max(0.1f, fillSeconds) * span;
+            // Once the vessels are full, the dye passes on: the nearest vessels clear first.
+            DyeTail = Mathf.Clamp01((elapsed - fillSeconds) / Mathf.Max(0.1f, washSeconds)) * span;
+            alpha = Mathf.Clamp01(fluoro.ContrastRemaining01 * 3f);
         }
         else
         {
             _dyeStart = -1f;
             DyeFront = 0f;
+            DyeTail = 0f;
         }
 
         var mat = vesselMesh != null ? vesselMesh.Material : null;
         if (mat != null)
         {
             mat.SetFloat(DyeFrontId, DyeFront);
+            mat.SetFloat(DyeTailId, DyeTail);
             mat.SetFloat(DyeAlphaId, alpha);
             mat.SetFloat(DyeFeatherId, dyeFeather);
             mat.SetFloat(FlowOnId, showFlow ? 1f : 0f);
@@ -218,6 +231,7 @@ public class DyeFlow : MonoBehaviour
 
         Shader.SetGlobalFloat(VolDyeOnId, _mapReady && DyeRunning ? 1f : 0f);
         Shader.SetGlobalFloat(VolDyeFrontId, DyeFront);
+        Shader.SetGlobalFloat(VolDyeTailId, DyeTail);
         Shader.SetGlobalFloat(VolDyeFeatherId, dyeFeather);
         Shader.SetGlobalFloat(VolDyePlainId, fluoro != null ? fluoro.plainVesselVisibility : 0.05f);
     }
