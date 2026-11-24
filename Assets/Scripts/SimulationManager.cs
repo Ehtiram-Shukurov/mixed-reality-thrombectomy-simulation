@@ -55,11 +55,13 @@ public class SimulationManager : MonoBehaviour
     private float _restartHold = 0f;
     private bool _started = false;
     private StentVisual _stent;
+    private DyeFlow _dye;
 
     void Start()
     {
         if (resultsPanel != null) resultsPanel.gameObject.SetActive(false);
         _stent = FindFirstObjectByType<StentVisual>();
+        _dye = FindFirstObjectByType<DyeFlow>();
 
         if (guidewireSimulator != null)
         {
@@ -143,6 +145,7 @@ public class SimulationManager : MonoBehaviour
                 _wrongTurns = 0;
                 _deadEnds = 0;
                 fluoroController?.ResetTimer();
+                if (_dye != null) _dye.Reperfused = false;
                 if (resultsPanel != null) resultsPanel.gameObject.SetActive(false);
                 SetGuidewire(true);
                 Debug.Log("[SimManager] Phase 1 — Navigate guidewire to clot.");
@@ -171,6 +174,7 @@ public class SimulationManager : MonoBehaviour
                 SetGuidewire(false);
                 clotTarget?.Release();
                 _stent?.Hide();
+                if (_dye != null) _dye.Reperfused = true;
                 Feedback.Success();
                 ShowResults();
                 Debug.Log("[SimManager] Phase 3 — Results.");
