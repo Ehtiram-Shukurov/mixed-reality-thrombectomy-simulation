@@ -55,6 +55,8 @@ public class FluoroController : MonoBehaviour
     private bool ContrastAllowed()
     {
         if (_sim == null) return true;
+        // The B press that just started a pass or a new case is not a dye injection.
+        if (_sim.PhaseChangedFrame == Time.frameCount) return false;
         var p = _sim.CurrentPhase;
         return p == SimulationManager.SimPhase.Phase1_Navigation
             || p == SimulationManager.SimPhase.Phase2a_CatheterAdvance

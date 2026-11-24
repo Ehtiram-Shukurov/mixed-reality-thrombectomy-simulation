@@ -18,6 +18,15 @@ public class ClotTarget : MonoBehaviour
     [Tooltip("Top fraction of Z range used as candidate region (cerebral side).")]
     public float upperFraction = 0.3f;
 
+    public enum CaseLevel { Easy, Medium, Hard, Random }
+
+    [Header("Case")]
+    [Tooltip("Fixed clot positions ranked by forks on the way and distance, so runs are comparable. Random picks any position.")]
+    public CaseLevel caseLevel = CaseLevel.Easy;
+    // Shown on the phase card and written to the run log.
+    public string CaseLabel { get; private set; } = "";
+    public int ForksOnPath { get; private set; }
+
     [Header("Crossing")]
     [Tooltip("The wire has to go this many nodes past the clot (or to the next fork or the vessel end) to cross it.")]
     public int crossNodes = 8;
@@ -116,7 +125,7 @@ public class ClotTarget : MonoBehaviour
             return;
         }
 
-        ClotNode = candidates[Random.Range(0, candidates.Count)];
+        ClotNode = PickForCase(candidates);
         CountAhead(ClotNode, crossNodes, out var cross);
         CrossNode = cross;
         IsTouched = false;
@@ -125,6 +134,73 @@ public class ClotTarget : MonoBehaviour
         _isPlaced = true;
 
         Debug.Log($"[ClotTarget] Placed at node {ClotNode.id} (Z={ClotNode.normalizedPosition.z:F3}), cross at node {CrossNode.id}");
+    }
+
+    // Ranks the candidates by forks on the way from the entry, then by path length, and takes
+    // the one at the low, middle or high end for Easy, Medium or Hard. Always the same node per level.
+    private CenterlineNode PickForCase(List<CenterlineNode> candidates)
+    {
+        // Parent of every node, walking from the entry.
+        var parent = new Dictionary<CenterlineNode, CenterlineNode>();
+        var queue = new Queue<CenterlineNode>();
+        parent[centerlineLoader.EntryNode] = null;
+        queue.Enqueue(centerlineLoader.EntryNode);
+        while (queue.Count > 0)
+        {
+            var n = queue.Dequeue();
+            foreach (var b in n.branches)
+                if (!parent.ContainsKey(b)) { parent[b] = n; queue.Enqueue(b); }
+        }
+
+        int Forks(CenterlineNode node)
+        {
+            int f = 0;
+            for (var p = parent.ContainsKey(node) ? parent[node] : null; p != null; p = parent.ContainsKey(p) ? parent[p] : null)
+                if (p.branches.Count > 1) f++;
+            return f;
+        }
+        int Depth(CenterlineNode node)
+        {
+            int d = 0;
+            for (var p = node; p != null && parent.ContainsKey(p); p = parent[p]) d++;
+            return d;
+        }
+
+        CenterlineNode chosen;
+        if (caseLevel == CaseLevel.Random)
+        {
+            chosen = candidates[Random.Range(0, candidates.Count)];
+        }
+        else
+        {
+            var ranked = new List<CenterlineNode>(candidates);
+            ranked.Sort((a, b) =>
+            {
+                int c = Forks(a).CompareTo(Forks(b));
+                if (c != 0) return c;
+                c = Depth(a).CompareTo(Depth(b));
+                return c != 0 ? c : a.id.CompareTo(b.id);
+            });
+            float q = caseLevel == CaseLevel.Easy ? 0.1f : caseLevel == CaseLevel.Medium ? 0.5f : 0.9f;
+            chosen = ranked[Mathf.Clamp(Mathf.RoundToInt(q * (ranked.Count - 1)), 0, ranked.Count - 1)];
+        }
+
+        ForksOnPath = Forks(chosen);
+        CaseLabel = caseLevel == CaseLevel.Random
+            ? $"Random case, {ForksOnPath} fork{(ForksOnPath == 1 ? "" : "s")}"
+            : $"{caseLevel} case, {ForksOnPath} fork{(ForksOnPath == 1 ? "" : "s")}";
+        return chosen;
+    }
+
+    // Moves to the next case level (Easy, Medium, Hard, then Easy again).
+    public void NextCase()
+    {
+        caseLevel = caseLevel switch
+        {
+            CaseLevel.Easy => CaseLevel.Medium,
+            CaseLevel.Medium => CaseLevel.Hard,
+            _ => CaseLevel.Easy
+        };
     }
 
     // Walks forward along the vessel from a node. Stops at a fork, a dead end or after max nodes.

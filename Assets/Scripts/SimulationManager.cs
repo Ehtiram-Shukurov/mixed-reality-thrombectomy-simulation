@@ -114,8 +114,12 @@ public class SimulationManager : MonoBehaviour
             case SimPhase.Phase2d_ControlAngio: HandleControlAngio(); break;
         }
 
-        // Controller shortcut for Play Again, in case the poke button is hard to reach.
-        if (CurrentPhase == SimPhase.Phase3_Results && SimInput.ConfirmPressed) RestartRun();
+        // On the results: A plays the same case again, B moves to the next case.
+        if (CurrentPhase == SimPhase.Phase3_Results)
+        {
+            if (SimInput.ConfirmPressed) RestartRun();
+            else if (SimInput.StentPressed) { clotTarget?.NextCase(); RestartRun(); }
+        }
 
         HandleRestartHold();
     }
@@ -152,9 +156,13 @@ public class SimulationManager : MonoBehaviour
         EnterPhase(SimPhase.Phase1_Navigation);
     }
 
+    // Frame of the last phase change, so a button press that changed the phase is not reused.
+    public int PhaseChangedFrame { get; private set; } = -1;
+
     private void EnterPhase(SimPhase phase)
     {
         CurrentPhase = phase;
+        PhaseChangedFrame = Time.frameCount;
         if (_started) Feedback.PhaseChanged();
         _started = true;
 
@@ -336,6 +344,8 @@ public class SimulationManager : MonoBehaviour
                 + "\"deadEnds\":" + _deadEnds + ","
                 + "\"contrastRuns\":" + (fluoroController != null ? fluoroController.ContrastRuns : 0) + ","
                 + "\"speedWarnings\":" + _speedWarnings + ","
+                + "\"case\":\"" + (clotTarget != null ? clotTarget.caseLevel.ToString() : "") + "\","
+                + "\"forksOnPath\":" + (clotTarget != null ? clotTarget.ForksOnPath : 0) + ","
                 + "\"passes\":" + _passes + ","
                 + "\"reopened\":" + (_reopened ? "true" : "false") + ","
                 + "\"rating\":\"" + rating + "\","
