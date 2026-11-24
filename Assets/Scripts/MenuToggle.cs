@@ -10,7 +10,9 @@ public class MenuToggle : MonoBehaviour
 
     void Update()
     {
-        if (SimInput.MenuTogglePressed) Set(!Visible);
+        if (!SimInput.MenuTogglePressed) return;
+        if (AppShell.AtHome || (ModalLayer.Instance != null && ModalLayer.Instance.IsOpen)) return;
+        Set(!Visible);
     }
 
     public void Set(bool visible)

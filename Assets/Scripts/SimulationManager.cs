@@ -111,7 +111,7 @@ public class SimulationManager : MonoBehaviour
             guidewireSimulator.Forced += OnForced;
         }
 
-        if (appShell != null) { EnterPhase(SimPhase.Idle); appShell.ShowHome(); }
+        if (appShell != null) { EnterPhase(SimPhase.Idle); appShell.Launch(); }
         else if (startCard != null) WaitAtCard(true);
         else EnterPhase(SimPhase.Phase1_Navigation);
     }
@@ -195,6 +195,13 @@ public class SimulationManager : MonoBehaviour
         ResetAll();
         if (startCard != null) WaitAtCard(false);
         else EnterPhase(SimPhase.Phase1_Navigation);
+    }
+
+    // A clean start before the case card: no run left over from before.
+    public void PrepareRun()
+    {
+        ResetAll();
+        EnterPhase(SimPhase.Idle);
     }
 
     // Back to the home screen from the results or from settings.

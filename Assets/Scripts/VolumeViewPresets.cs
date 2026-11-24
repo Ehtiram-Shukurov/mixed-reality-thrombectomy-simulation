@@ -85,7 +85,19 @@ public class VolumeViewPresets : MonoBehaviour
     // Hooked to the View button on the menu (On Value Changed, dynamic bool).
     public void Toggle(bool _) => Set(Current == Pose.Upright ? Pose.Supine : Pose.Upright);
 
-    public void Set(Pose pose)
+    // Upright rotation with the front of the body facing 'toward' (a flat direction).
+    public bool UprightRotation(Vector3 toward, out Quaternion rot)
+    {
+        rot = Quaternion.identity;
+        if (!EnsureAxes()) return false;
+        toward = Vector3.ProjectOnPlane(toward, Vector3.up).normalized;
+        rot = Quaternion.LookRotation(toward, Vector3.up) * Quaternion.Inverse(Quaternion.LookRotation(_frontLocal, _longLocal));
+        return true;
+    }
+
+    public void Set(Pose pose) => Set(pose, true);
+
+    public void Set(Pose pose, bool notify)
     {
         if (!EnsureAxes()) return;
         var head = FxUtil.FindHead();
@@ -115,7 +127,7 @@ public class VolumeViewPresets : MonoBehaviour
         Quaternion rot = world * Quaternion.Inverse(body);
 
         Current = pose;
-        GuidewireUI.Notify(pose == Pose.Upright
+        if (notify) GuidewireUI.Notify(pose == Pose.Upright
             ? "Upright view: the patient stands in front of you. Grab the model to move it."
             : "Supine view: the patient lies on their back, chest away from you. Grab the model to move it.");
         if (_move != null) StopCoroutine(_move);

@@ -37,11 +37,12 @@ public class StartCard : MonoBehaviour
         Refresh();
     }
 
-    public void Hide()
+    // showPhaseCard: false when the card closes without starting a run (about, settings, home).
+    public void Hide(bool showPhaseCard = true)
     {
         gameObject.SetActive(false);
         _aboutDone = null;
-        if (phaseCard != null) phaseCard.SetActive(true);
+        if (showPhaseCard && phaseCard != null) phaseCard.SetActive(true);
     }
 
     public void SetTutorial(bool on) => TutorialOn = on;
@@ -72,7 +73,7 @@ public class StartCard : MonoBehaviour
             if (_aboutDone != null && _page == Page.Controls)
             {
                 var done = _aboutDone;
-                Hide();
+                Hide(false);
                 done();
                 return;
             }
