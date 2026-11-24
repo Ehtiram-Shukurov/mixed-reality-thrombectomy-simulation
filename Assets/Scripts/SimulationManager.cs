@@ -38,8 +38,10 @@ public class SimulationManager : MonoBehaviour
     public float easyHold = 0.25f;
     public float mediumTolerance = 20f;
     public float mediumHold = 0.4f;
-    public float hardTolerance = 14f;
-    public float hardHold = 0.6f;
+    public float hardTolerance = 12f;
+    public float hardHold = 0.7f;
+    [Tooltip("Bend angle (degrees) where pushing hard counts as forcing, per level.")]
+    public float easyForceAngle = 55f, mediumForceAngle = 45f, hardForceAngle = 38f;
 
     [Header("Outcome")]
     [Tooltip("Seconds of pulling too fast in one pass before a clot fragment stays behind. A rule for the simulation, not clinical data.")]
@@ -187,17 +189,32 @@ public class SimulationManager : MonoBehaviour
             case ClotTarget.CaseLevel.Easy:
                 guidewireSimulator.alignmentTolerance = easyTolerance;
                 guidewireSimulator.alignHoldSeconds = easyHold;
+                guidewireSimulator.forceAngle = easyForceAngle;
                 break;
             case ClotTarget.CaseLevel.Hard:
                 guidewireSimulator.alignmentTolerance = hardTolerance;
                 guidewireSimulator.alignHoldSeconds = hardHold;
+                guidewireSimulator.forceAngle = hardForceAngle;
                 break;
             default:
                 guidewireSimulator.alignmentTolerance = mediumTolerance;
                 guidewireSimulator.alignHoldSeconds = mediumHold;
+                guidewireSimulator.forceAngle = mediumForceAngle;
                 break;
         }
     }
+
+    // Hooked to the Case button on the menu: next level and a fresh run.
+    public void CycleCase(bool _)
+    {
+        if (clotTarget == null) return;
+        clotTarget.NextCase();
+        RestartRun();
+    }
+
+    // Seconds since the current phase started. Used to show the case at the start of a run.
+    public float TimeInPhase => Time.time - _phaseStartTime;
+    private float _phaseStartTime;
 
     // Hooked to the Assessment toggle on the menu (On Value Changed, dynamic bool).
     // Takes effect right away; the run log records the mode at the end of the run.
@@ -214,6 +231,7 @@ public class SimulationManager : MonoBehaviour
     {
         CurrentPhase = phase;
         PhaseChangedFrame = Time.frameCount;
+        _phaseStartTime = Time.time;
         if (_started) Feedback.PhaseChanged();
         _started = true;
 

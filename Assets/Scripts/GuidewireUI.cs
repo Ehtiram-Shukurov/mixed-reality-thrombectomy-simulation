@@ -37,6 +37,9 @@ public class GuidewireUI : MonoBehaviour
         if (instructionText == null || simManager == null) return;
 
         string phase1 = "Press B to inject dye and find the clot. Push to advance. Twist at forks.";
+        // Say which case this is for the first seconds of a run.
+        if (clotTarget != null && clotTarget.CaseLabel.Length > 0 && simManager.TimeInPhase < 5f && !clotTarget.IsTouched)
+            phase1 = clotTarget.CaseLabel + ". " + phase1;
         if (clotTarget != null && clotTarget.IsTouched)
             phase1 = "Wire is at the clot. Keep pushing to cross it.";
         else if (clotTarget != null && clotTarget.IsRoadmapped)
