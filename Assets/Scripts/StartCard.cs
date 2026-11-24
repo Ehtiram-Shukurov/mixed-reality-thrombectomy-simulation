@@ -40,7 +40,18 @@ public class StartCard : MonoBehaviour
     public void Hide()
     {
         gameObject.SetActive(false);
+        _aboutDone = null;
         if (phaseCard != null) phaseCard.SetActive(true);
+    }
+
+    public void SetTutorial(bool on) => TutorialOn = on;
+
+    // About from the home screen: what the procedure is and the controls, then back.
+    private System.Action _aboutDone;
+    public void ShowAbout(System.Action done)
+    {
+        Show(true);
+        _aboutDone = done;
     }
 
     void Update()
@@ -58,6 +69,13 @@ public class StartCard : MonoBehaviour
 
         if (SimInput.ConfirmPressed)
         {
+            if (_aboutDone != null && _page == Page.Controls)
+            {
+                var done = _aboutDone;
+                Hide();
+                done();
+                return;
+            }
             if (_page == Page.Case) { StartRun(); return; }
             _page++;
             _shownAt = Time.unscaledTime;
@@ -110,7 +128,7 @@ public class StartCard : MonoBehaviour
                      + "</line-height>\n"
                      + $"<size=85%><color={Grey}>Pinch to grab the model and poke the menu. "
                      + "Left palm pinch hides the menu. Tap the stick to turn the C-arm.</color></size>";
-                foot = Footer("continue");
+                foot = Footer(_aboutDone != null ? "go back" : "continue");
                 break;
 
             default:

@@ -115,6 +115,14 @@ public class SimulationAutoplay : MonoBehaviour
     private IEnumerator PassCard()
     {
         var card = FindFirstObjectByType<StartCard>(FindObjectsInactive.Include);
+        var shell = FindFirstObjectByType<AppShell>();
+        if (shell != null && shell.HomeShowing)
+        {
+            Log("home screen showing, choosing Guided training");
+            shell.StartGuided();
+            yield return null;
+            yield return null;
+        }
         int presses = 0;
         float t0 = Time.realtimeSinceStartup;
         while (_sm.CurrentPhase == SimulationManager.SimPhase.Idle && Time.realtimeSinceStartup - t0 < 10f)

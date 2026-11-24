@@ -8,7 +8,7 @@ using TMPro;
 // Assessment is on.
 public class MenuStateLabel : MonoBehaviour
 {
-    public enum Kind { Case, View, Mode }
+    public enum Kind { Case, View, Mode, Settings }
     public Kind kind;
 
     public Color tint = new Color(0.118f, 0.13f, 0.15f, 1f);
@@ -58,6 +58,9 @@ public class MenuStateLabel : MonoBehaviour
                     };
                     text = Text("CASE", _clot.caseLevel.ToString(), $"{_clot.ForksOnPath} forks, {twist}");
                 }
+                break;
+            case Kind.Settings:
+                text = Text("SETTINGS", "Options", "view, sound, home");
                 break;
             case Kind.View:
                 if (_view != null)

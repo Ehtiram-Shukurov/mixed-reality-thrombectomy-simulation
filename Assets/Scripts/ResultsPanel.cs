@@ -89,6 +89,16 @@ public class ResultsPanel : MonoBehaviour
         if (phaseCard != null) phaseCard.SetActive(true);
     }
 
+    // Hooked to the Home button: back to the home screen.
+    public void OnHome() => simManager?.ReturnHome();
+
+    // Hooked to the Next case button.
+    public void OnNextCase()
+    {
+        simManager?.clotTarget?.NextCase();
+        simManager?.RestartRun();
+    }
+
     private void OnPlayAgain()
     {
         gameObject.SetActive(false);
