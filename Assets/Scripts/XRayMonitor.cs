@@ -23,6 +23,15 @@ public class XRayMonitor : MonoBehaviour
     [Tooltip("Physical X-ray projection (absorption added up along each ray), shown like real fluoroscopy and DSA. Off shows the stylized X-ray of the A view in Training.")]
     public bool useProjection = true;
 
+    [Header("C-arm")]
+    [Tooltip("View angles around the body's long axis, cycled by a short tap on the right stick click.")]
+    public float[] cArmAngles = { 0f, 30f, -30f };
+    [Tooltip("A press shorter than this is a tap (longer presses are the restart hold).")]
+    public float tapSeconds = 0.35f;
+    public int CArmIndex { get; private set; }
+    public float CArmAngle => cArmAngles != null && cArmAngles.Length > 0 ? cArmAngles[CArmIndex] : 0f;
+    private float _clickStart = -1f;
+
     [Header("Realism")]
     [Tooltip("Grain on live fluoroscopy.")]
     public float grainLive = 0.05f;
@@ -326,14 +335,16 @@ public class XRayMonitor : MonoBehaviour
     void LateUpdate()
     {
         if (!_axesReady) PickAxes();
+        HandleCArmTap();
 
         bool imaging = fluoro != null && fluoro.IsActive;
         if (imaging && _volume != null)
         {
             Vector3 center = _volume.position;
             float size = _volume.lossyScale.x;
-            Vector3 view = _volume.TransformDirection(_viewLocal).normalized;
             Vector3 up = _volume.TransformDirection(_upLocal).normalized;
+            // The C-arm turns around the body's long axis.
+            Vector3 view = Quaternion.AngleAxis(CArmAngle, up) * _volume.TransformDirection(_viewLocal).normalized;
             _cam.transform.position = center - view * size * distance;
             _cam.transform.rotation = Quaternion.LookRotation(view, up);
             // Only see a slab around the volume, so panels or hands behind it stay out of the image.
@@ -347,6 +358,25 @@ public class XRayMonitor : MonoBehaviour
         UpdateRoadmap(imaging);
         SetStatus();
         SetControls();
+    }
+
+    // A short tap on the right stick click moves the C-arm to the next angle.
+    // The old mask and roadmap no longer line up, so they are cleared, as on a real system.
+    private void HandleCArmTap()
+    {
+        bool down = SimInput.RightStickClick;
+        if (down && _clickStart < 0f) _clickStart = Time.unscaledTime;
+        else if (!down && _clickStart >= 0f)
+        {
+            bool tap = Time.unscaledTime - _clickStart < tapSeconds;
+            _clickStart = -1f;
+            if (tap && cArmAngles != null && cArmAngles.Length > 1)
+            {
+                CArmIndex = (CArmIndex + 1) % cArmAngles.Length;
+                ClearRoadmap();
+                Feedback.BranchChosen(); // short tick
+            }
+        }
     }
 
     // At the start of each dye run, render one frame with no dye and keep it as the mask.
@@ -388,7 +418,7 @@ public class XRayMonitor : MonoBehaviour
         switch (_sim.CurrentPhase)
         {
             case SimulationManager.SimPhase.Phase1_Navigation:
-                text = "Stick: push / pull / twist   A: X-ray   B: dye"; break;
+                text = "Stick: push / pull / twist   A: X-ray   B: dye   Click: C-arm"; break;
             case SimulationManager.SimPhase.Phase2a_CatheterAdvance:
                 text = "Stick up: advance catheter   A: X-ray   B: dye"; break;
             case SimulationManager.SimPhase.Phase2b_StentDeploy:
@@ -452,7 +482,8 @@ public class XRayMonitor : MonoBehaviour
         {
             if (_clotForTitle == null) _clotForTitle = FindFirstObjectByType<ClotTarget>();
             string label = _clotForTitle != null ? _clotForTitle.CaseLabel : "";
-            _title.text = label.Length > 0 ? "X-RAY  ·  " + label : "X-RAY";
+            string angle = "C-arm " + (CArmAngle > 0 ? "+" : "") + CArmAngle.ToString("0") + "°";
+            _title.text = "X-RAY " + angle + (label.Length > 0 ? "  ·  " + label : "");
         }
         if (_status == null) return;
         bool imaging = fluoro != null && fluoro.IsActive;
