@@ -105,10 +105,19 @@ public class GuidewireUI : MonoBehaviour
 
         bool atFork = guidewireSimulator.IsReady && guidewireSimulator.IsAtFork;
         bool deadEnd = guidewireSimulator.IsReady && guidewireSimulator.IsAtDeadEnd;
-        bool show = atFork || deadEnd;
+        bool bend = guidewireSimulator.IsReady && guidewireSimulator.enabled && guidewireSimulator.BendAmount > 0.3f;
+        bool show = atFork || deadEnd || bend;
         forkText.gameObject.SetActive(show);
         if (forkBadge != null) forkBadge.gameObject.SetActive(show);
         if (!show) return;
+
+        if (bend && !atFork && !deadEnd)
+        {
+            forkText.color = forkBadge != null ? Dark : Color.yellow;
+            if (forkBadge != null) forkBadge.color = Amber;
+            forkText.text = "<size=70%>TIGHT BEND</size>\nEase off";
+            return;
+        }
 
         if (deadEnd)
         {

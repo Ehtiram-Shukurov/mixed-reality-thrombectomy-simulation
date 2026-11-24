@@ -12,6 +12,8 @@ public class HapticManager : MonoBehaviour
     public float retractHum = 0.1f;
     [Tooltip("Buzz while the catheter is pulled back too fast. Stays on until you slow down.")]
     public float tooFastHum = 0.7f;
+    [Tooltip("Hum at the tightest bends.")]
+    public float bendHumMax = 0.45f;
 
     [Header("Fork")]
     public float forkArrival = 0.4f;
@@ -61,6 +63,8 @@ public class HapticManager : MonoBehaviour
     public void Advancing() => StartContinuous(advanceHum);
     public void Retracting() => StartContinuous(retractHum);
     public void TooFast() => StartContinuous(tooFastHum);
+    // Stronger hum the tighter the bend (0 to 1).
+    public void Resistance(float amount) => StartContinuous(Mathf.Lerp(movingHum, bendHumMax, Mathf.Clamp01(amount)));
     public void ForkAlignment(float signal) => StartContinuous(signal * forkAlignMax);
     public void ForkArrived() { StopContinuous(); PulseOnce(forkArrival, forkArrivalTime); }
     public void ClotContact() => PulseOnce(clotContact, clotContactTime);

@@ -40,7 +40,7 @@ public class ResultsPanel : MonoBehaviour
     }
 
     public void ShowResults(float totalTime, float fluoroSeconds, string rating, Color ratingColor,
-                            int wrongTurns, int deadEnds, int contrastRuns = 0)
+                            int wrongTurns, int deadEnds, int contrastRuns = 0, int forcedBends = 0)
     {
         int min = Mathf.FloorToInt(totalTime / 60f);
         int sec = Mathf.FloorToInt(totalTime % 60f);
@@ -55,7 +55,7 @@ public class ResultsPanel : MonoBehaviour
         }
         if (routeText != null)
         {
-            routeText.text = $"<size=85%><color=#8B96A5>Wrong turns</color> {wrongTurns}   <color=#8B96A5>Dead ends</color> {deadEnds}   <color=#8B96A5>Contrast</color> {contrastRuns}</size>";
+            routeText.text = $"<size=80%><color=#8B96A5>Wrong turns</color> {wrongTurns}  <color=#8B96A5>Dead ends</color> {deadEnds}  <color=#8B96A5>Forced</color> {forcedBends}  <color=#8B96A5>Dye</color> {contrastRuns}</size>";
         }
 
         // The phase card sits in the same spot, so hide it while results show.

@@ -62,6 +62,7 @@ public class SimulationManager : MonoBehaviour
         : $"Still blocked, {_passes} pass{(_passes == 1 ? "" : "es")}";
 
     private int _passes;
+    private int _forcedBends;
     private int _passPenalty;
     private bool _reopened;
     private float _angioTimer;
@@ -90,6 +91,7 @@ public class SimulationManager : MonoBehaviour
         {
             guidewireSimulator.BranchChosen += OnBranchChosen;
             guidewireSimulator.DeadEndReached += OnDeadEnd;
+            guidewireSimulator.Forced += OnForced;
         }
 
         EnterPhase(SimPhase.Phase1_Navigation);
@@ -101,7 +103,14 @@ public class SimulationManager : MonoBehaviour
         {
             guidewireSimulator.BranchChosen -= OnBranchChosen;
             guidewireSimulator.DeadEndReached -= OnDeadEnd;
+            guidewireSimulator.Forced -= OnForced;
         }
+    }
+
+    // Wire pushed hard through a sharp bend: a handling error.
+    private void OnForced()
+    {
+        if (CurrentPhase == SimPhase.Phase1_Navigation) _forcedBends++;
     }
 
     void Update()
@@ -178,6 +187,7 @@ public class SimulationManager : MonoBehaviour
                 _wrongTurns = 0;
                 _deadEnds = 0;
                 _passes = 0;
+                _forcedBends = 0;
                 _reopened = false;
                 fluoroController?.ResetTimer();
                 if (_dye != null) _dye.Reperfused = false;
@@ -315,7 +325,7 @@ public class SimulationManager : MonoBehaviour
         float exposure = fluoroController != null ? fluoroController.TotalExposureTime : 0f;
         string rating = ExtractionRating(out Color color);
         int contrast = fluoroController != null ? fluoroController.ContrastRuns : 0;
-        resultsPanel?.ShowResults(_totalTime, exposure, rating, color, _wrongTurns, _deadEnds, contrast);
+        resultsPanel?.ShowResults(_totalTime, exposure, rating, color, _wrongTurns, _deadEnds, contrast, _forcedBends);
         resultsPanel?.ShowOutcome(OutcomeText, _reopened);
         WriteRunLog(exposure, rating);
     }
@@ -342,6 +352,7 @@ public class SimulationManager : MonoBehaviour
                 + "\"fluoroSeconds\":" + exposure.ToString("F1", inv) + ","
                 + "\"wrongTurns\":" + _wrongTurns + ","
                 + "\"deadEnds\":" + _deadEnds + ","
+                + "\"forcedBends\":" + _forcedBends + ","
                 + "\"contrastRuns\":" + (fluoroController != null ? fluoroController.ContrastRuns : 0) + ","
                 + "\"speedWarnings\":" + _speedWarnings + ","
                 + "\"case\":\"" + (clotTarget != null ? clotTarget.caseLevel.ToString() : "") + "\","

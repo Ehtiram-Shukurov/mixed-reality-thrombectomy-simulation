@@ -23,6 +23,28 @@ public class GuidewireSimulator : MonoBehaviour
     [Tooltip("How many nodes down a branch to look when measuring its direction.")]
     public int branchLookAhead = 4;
 
+    [Header("Bends")]
+    [Tooltip("Nodes on each side used to measure how sharply the vessel turns.")]
+    public int bendWindow = 4;
+    [Tooltip("Bend angle (degrees) where resistance starts.")]
+    public float bendStart = 25f;
+    [Tooltip("Bend angle (degrees) of full resistance.")]
+    public float bendFull = 70f;
+    [Tooltip("Speed left at full resistance (0 to 1).")]
+    public float bendMinSpeed = 0.35f;
+    [Tooltip("Pushing harder than this through a bend above forceAngle counts as forcing.")]
+    public float forceStick = 0.9f;
+    public float forceAngle = 45f;
+    public float forceSeconds = 0.35f;
+
+    // 0 (straight) to 1 (very tight) for the bend just ahead. Read by the UI.
+    public float BendAmount { get; private set; }
+    public float BendAngle { get; private set; }
+    // Raised once per bend when the wire is forced through it.
+    public event Action Forced;
+    private float _forceTime;
+    private CenterlineNode _forcedAt;
+
     // The bent tip's direction at a fork, in the plane across the vessel.
     private Vector3 _bendDir = Vector3.up;
     private float _viewSign = 1f;
@@ -191,8 +213,15 @@ public class GuidewireSimulator : MonoBehaviour
         if (moveInput > 0.1f && nextNode != null)
         {
             _retractTarget = null;
-            HapticManager.Instance?.Moving();
-            MoveToward(nextNode, moveInput);
+            UpdateBend(nextNode);
+
+            // Tight bends push back: slower, a stronger hum, and forcing it counts as an error.
+            float speedFactor = Mathf.Lerp(1f, bendMinSpeed, BendAmount);
+            if (BendAmount > 0.01f) HapticManager.Instance?.Resistance(BendAmount);
+            else HapticManager.Instance?.Moving();
+            CheckForcing(moveInput);
+
+            MoveToward(nextNode, moveInput * speedFactor);
         }
         else if (moveInput < -0.1f && _path.Count > 1)
         {
@@ -213,8 +242,54 @@ public class GuidewireSimulator : MonoBehaviour
         else
         {
             _retractTarget = null;
+            _forceTime = 0f;
+            BendAmount = 0f;
             HapticManager.Instance?.StopContinuous();
         }
+    }
+
+    // Angle between the vessel direction behind the wire and the direction just ahead of it.
+    private void UpdateBend(CenterlineNode target)
+    {
+        var loader = centerlineLoader;
+        int back = Mathf.Max(0, _path.Count - 1 - bendWindow);
+        Vector3 pBack = loader.GetNodeWorldPosition(_path[back]);
+        Vector3 pHere = loader.GetNodeWorldPosition(target);
+        var n = target;
+        for (int k = 0; k < bendWindow && n.branches.Count == 1; k++) n = n.branches[0];
+        Vector3 pAhead = loader.GetNodeWorldPosition(n);
+
+        Vector3 a = pHere - pBack, b = pAhead - pHere;
+        BendAngle = a.sqrMagnitude > 1e-10f && b.sqrMagnitude > 1e-10f ? Vector3.Angle(a, b) : 0f;
+        BendAmount = Mathf.Clamp01((BendAngle - bendStart) / Mathf.Max(1f, bendFull - bendStart));
+    }
+
+    // Holding the stick fully forward through a sharp bend for a moment counts once per bend.
+    private void CheckForcing(float moveInput)
+    {
+        bool forcing = moveInput >= forceStick && BendAngle >= forceAngle;
+        _forceTime = forcing ? _forceTime + Time.deltaTime : 0f;
+        if (_forceTime >= forceSeconds && _forcedAt != nextNode && !NearForced(nextNode))
+        {
+            _forcedAt = nextNode;
+            _forceTime = 0f;
+            Feedback.SpeedWarning();
+            Forced?.Invoke();
+            Debug.Log($"[Guidewire] Forced through a {BendAngle:F0} degree bend.");
+        }
+    }
+
+    // One error per bend: ignore the next few nodes after a forced one.
+    private bool NearForced(CenterlineNode node)
+    {
+        if (_forcedAt == null) return false;
+        var n = _forcedAt;
+        for (int k = 0; k < bendWindow * 2 && n != null; k++)
+        {
+            if (n == node) return true;
+            n = n.branches.Count > 0 ? n.branches[0] : null;
+        }
+        return false;
     }
 
     private void MoveToward(CenterlineNode target, float input)
@@ -445,6 +520,9 @@ public class GuidewireSimulator : MonoBehaviour
         _bestBranchAngle = 180f;
         TwistDirection = 0;
         BranchSignedAngle = 0f;
+        BendAmount = 0f;
+        _forcedAt = null;
+        _forceTime = 0f;
         DialCount = 0;
         wireTip.localRotation = _startLocalRotation;
         HapticManager.Instance?.StopAll();
