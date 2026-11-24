@@ -15085,6 +15085,12 @@ MonoBehaviour:
   resolution: 384
   fieldOfView: 48
   distance: 1.25
+  useProjection: 0
+  invertImage: 0
+  projectionSteps: 96
+  projectionAirLevel: 0.55
+  projectionStrength: 4
+  projectionDye: 3
   useRoadmap: 1
   roadmapCaptureAt: 1.2
 --- !u!4 &897870702
@@ -28185,7 +28191,13 @@ MonoBehaviour:
   clotTarget: {fileID: 300974650}
   resultsPanel: {fileID: 1333047835}
   stentDwellSeconds: 3
-  fragmentPenaltyThreshold: 10
+  easyTolerance: 25
+  easyHold: 0.25
+  mediumTolerance: 20
+  mediumHold: 0.4
+  hardTolerance: 14
+  hardHold: 0.6
+  fragmentTooFastSeconds: 2
   maxPasses: 3
   angioSeconds: 4.5
   restartHoldSeconds: 2

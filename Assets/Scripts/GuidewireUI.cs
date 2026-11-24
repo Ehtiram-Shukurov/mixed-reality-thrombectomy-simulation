@@ -63,9 +63,10 @@ public class GuidewireUI : MonoBehaviour
     {
         if (!simManager.AngioDone) return "Control angiogram. Watch where the dye goes.";
         if (simManager.Reopened) return "Dye flows past. The vessel is open.";
+        string why = $"You pulled too fast for {simManager.PassTooFastSeconds:F1} s, so a piece of clot stayed.";
         return simManager.CanTryAgain
-            ? "Dye still stops at a piece of clot. B: another pass. A: finish."
-            : "Dye still stops at a piece of clot. No passes left.";
+            ? why + " B: another pass. A: finish."
+            : why + " No passes left.";
     }
 
     private void UpdatePhase()

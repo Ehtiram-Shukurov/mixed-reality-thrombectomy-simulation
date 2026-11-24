@@ -187,9 +187,8 @@ public class ClotTarget : MonoBehaviour
         }
 
         ForksOnPath = Forks(chosen);
-        CaseLabel = caseLevel == CaseLevel.Random
-            ? $"Random case, {ForksOnPath} fork{(ForksOnPath == 1 ? "" : "s")}"
-            : $"{caseLevel} case, {ForksOnPath} fork{(ForksOnPath == 1 ? "" : "s")}";
+        string twist = caseLevel == CaseLevel.Easy ? "wide twist" : caseLevel == CaseLevel.Hard ? "tight twist" : "normal twist";
+        CaseLabel = $"{caseLevel}: {ForksOnPath} fork{(ForksOnPath == 1 ? "" : "s")}, {twist}";
         return chosen;
     }
 

@@ -20,8 +20,10 @@ public class XRayMonitor : MonoBehaviour
     public float fieldOfView = 48f;
     [Tooltip("Camera distance from the volume center, in volume sizes.")]
     public float distance = 1.25f;
-    [Tooltip("Show a real X-ray projection (absorption added up along each ray) instead of the stylized X-ray mode.")]
-    public bool useProjection = true;
+    [Tooltip("Show a physical X-ray projection (absorption added up along each ray) instead of the same X-ray as the A view. Off by default: the A-view look reads more clearly.")]
+    public bool useProjection = false;
+    [Tooltip("Dark dye on a light background (angiogram style). Off shows it like the A view: bright on dark.")]
+    public bool invertImage = false;
     [Tooltip("Ray steps for the projection. The monitor image is small, so more steps are cheap here.")]
     public float projectionSteps = 96f;
     [Tooltip("CT value treated as air in the projection (0 to 1). Tuned by eye in the editor.")]
@@ -272,6 +274,7 @@ public class XRayMonitor : MonoBehaviour
         }
         _cam.enabled = imaging;
         _screenMat.SetFloat("_Dim", imaging ? 0f : 1f);
+        _screenMat.SetFloat("_Invert", invertImage ? 1f : 0f);
         UpdateRoadmap(imaging);
         SetStatus();
         SetControls();
@@ -340,8 +343,17 @@ public class XRayMonitor : MonoBehaviour
         _capturedThisRun = false;
     }
 
+    private ClotTarget _clotForTitle;
+
     private void SetStatus()
     {
+        // Title: which case is loaded, so the level is visible during the whole run.
+        if (_title != null)
+        {
+            if (_clotForTitle == null) _clotForTitle = FindFirstObjectByType<ClotTarget>();
+            string label = _clotForTitle != null ? _clotForTitle.CaseLabel : "";
+            _title.text = label.Length > 0 ? "X-RAY  ·  " + label : "X-RAY";
+        }
         if (_status == null) return;
         bool imaging = fluoro != null && fluoro.IsActive;
         if (imaging && fluoro.ContrastActive) { _status.text = "● DYE"; _status.color = new Color(0.98f, 0.75f, 0.14f); }
