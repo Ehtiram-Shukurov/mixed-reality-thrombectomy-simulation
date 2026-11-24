@@ -23,6 +23,14 @@ public class GuidewireSimulator : MonoBehaviour
     [Tooltip("How many nodes down a branch to look when measuring its direction.")]
     public int branchLookAhead = 4;
 
+    [Header("Hand roll")]
+    [Tooltip("Roll the right controller to twist the wire at forks, as well as the stick.")]
+    public bool useControllerRoll = true;
+    [Tooltip("Tip degrees per degree of hand roll.")]
+    public float rollGain = 1f;
+    private Quaternion _prevRoll;
+    private bool _hasPrevRoll;
+
     [Header("Bends")]
     [Tooltip("Nodes on each side used to measure how sharply the vessel turns.")]
     public int bendWindow = 4;
@@ -165,6 +173,8 @@ public class GuidewireSimulator : MonoBehaviour
     // as you see it, so the dot you want on the right means push right.
     private void HandleTwist()
     {
+        HandleControllerRoll();
+
         var stick = SimInput.Stick;
         if (Mathf.Abs(stick.x) <= 0.1f) return;
 
@@ -178,6 +188,31 @@ public class GuidewireSimulator : MonoBehaviour
         {
             wireTip.Rotate(0, 0, -stick.x * twistSpeed * Time.deltaTime, Space.Self);
         }
+    }
+
+    // Rolling the right controller turns the tip, like torquing a real wire by hand.
+    // A clockwise roll (as you look along your hand) turns the tip clockwise as you see it,
+    // the same as pushing the stick right. Tracked every frame so there is no jump.
+    private void HandleControllerRoll()
+    {
+        var rot = SimInput.RightControllerRotation;
+        if (!useControllerRoll || rot == null) { _hasPrevRoll = false; return; }
+
+        if (_hasPrevRoll && isAtFork)
+        {
+            var delta = Quaternion.Inverse(_prevRoll) * rot.Value;
+            float roll = Mathf.DeltaAngle(0f, delta.eulerAngles.z);
+            // Ignore tiny tracking jitter and big jumps (tracking glitches).
+            if (Mathf.Abs(roll) > 0.05f && Mathf.Abs(roll) < 45f)
+            {
+                UpdateViewSign();
+                // Positive local-Z rotation looks counter-clockwise from behind, so flip it.
+                _bendDir = Quaternion.AngleAxis(-roll * rollGain * _viewSign, incomingDir) * _bendDir;
+                _bendDir = Vector3.ProjectOnPlane(_bendDir, incomingDir).normalized;
+            }
+        }
+        _prevRoll = rot.Value;
+        _hasPrevRoll = true;
     }
 
     // Positive AngleAxis turns clockwise for a viewer looking against the axis.

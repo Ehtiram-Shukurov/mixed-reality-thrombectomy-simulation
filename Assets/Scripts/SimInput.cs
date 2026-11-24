@@ -40,6 +40,18 @@ public static class SimInput
         ? StickOverride
         : OVRInput.Get(OVRInput.Axis2D.PrimaryThumbstick, OVRInput.Controller.RTouch);
 
+    // Right controller orientation, for twisting the wire by rolling the hand.
+    // Null when the controller is not tracked (or in the autoplay test).
+    public static Quaternion? RightControllerRotation
+    {
+        get
+        {
+            if (UseOverride) return null;
+            if (!OVRInput.GetControllerOrientationTracked(OVRInput.Controller.RTouch)) return null;
+            return OVRInput.GetLocalControllerRotation(OVRInput.Controller.RTouch);
+        }
+    }
+
     // Right A: hold for fluoroscopy.
     public static bool FluoroHeld => UseOverride
         ? FluoroOverride
