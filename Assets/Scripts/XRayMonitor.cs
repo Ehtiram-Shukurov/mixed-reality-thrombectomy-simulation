@@ -40,6 +40,16 @@ public class XRayMonitor : MonoBehaviour
     private Material _proxyMat;
     private VesselMeshView _vesselMesh;
     private bool _volumeWasOn, _meshWasOn;
+    // Roadmap: a dye frame saved during each injection, shown under the live plain X-ray.
+    [Header("Roadmap")]
+    public bool useRoadmap = true;
+    [Tooltip("Seconds into a dye run when the roadmap frame is saved.")]
+    public float roadmapCaptureAt = 1.2f;
+    private RenderTexture _roadmapRT;
+    private bool _hasRoadmap;
+    private bool _capturedThisRun;
+    public bool RoadmapShowing { get; private set; }
+
     public Camera MonitorCamera => _cam;
     public RenderTexture Image => _rt;
 
@@ -59,6 +69,8 @@ public class XRayMonitor : MonoBehaviour
         // The image.
         _rt = new RenderTexture(resolution, resolution, 16, RenderTextureFormat.ARGB32) { name = "XRayMonitorRT" };
         _rt.Create();
+        _roadmapRT = new RenderTexture(resolution, resolution, 0, RenderTextureFormat.ARGB32) { name = "XRayRoadmapRT" };
+        _roadmapRT.Create();
         var screen = FxUtil.MakeQuad("Screen", transform);
         screen.layer = uiLayer;
         screen.transform.localScale = new Vector3(screenSize, screenSize, 1f);
@@ -238,7 +250,34 @@ public class XRayMonitor : MonoBehaviour
         }
         _cam.enabled = imaging;
         _screenMat.SetFloat("_Dim", imaging ? 0f : 1f);
+        UpdateRoadmap(imaging);
         SetStatus();
+    }
+
+    // Save one dye frame per injection, once the dye is fully in. The texture still holds the
+    // last rendered frame at this point, which is fine: the camera has been rendering dye.
+    private void UpdateRoadmap(bool imaging)
+    {
+        bool dye = fluoro != null && fluoro.ContrastActive;
+        if (!dye) _capturedThisRun = false;
+        else if (!_capturedThisRun && fluoro.ContrastElapsed >= roadmapCaptureAt)
+        {
+            Graphics.Blit(_rt, _roadmapRT);
+            _hasRoadmap = true;
+            _capturedThisRun = true;
+        }
+
+        // Show it under plain fluoroscopy (A held, no dye running).
+        RoadmapShowing = useRoadmap && _hasRoadmap && imaging && !dye;
+        _screenMat.SetTexture("_Roadmap", _roadmapRT);
+        _screenMat.SetFloat("_RoadmapOn", RoadmapShowing ? 1f : 0f);
+    }
+
+    // A new case starts without a roadmap.
+    public void ClearRoadmap()
+    {
+        _hasRoadmap = false;
+        _capturedThisRun = false;
     }
 
     private void SetStatus()
@@ -246,6 +285,7 @@ public class XRayMonitor : MonoBehaviour
         if (_status == null) return;
         bool imaging = fluoro != null && fluoro.IsActive;
         if (imaging && fluoro.ContrastActive) { _status.text = "● DYE"; _status.color = new Color(0.98f, 0.75f, 0.14f); }
+        else if (imaging && RoadmapShowing) { _status.text = "● ROADMAP"; _status.color = new Color(0.25f, 0.72f, 0.80f); }
         else if (imaging) { _status.text = "● LIVE"; _status.color = new Color(0.97f, 0.40f, 0.36f); }
         else if (_hasImage) { _status.text = "LAST IMAGE HOLD"; _status.color = new Color(0.55f, 0.62f, 0.70f); }
         else { _status.text = "NO IMAGE"; _status.color = new Color(0.40f, 0.45f, 0.50f); }
@@ -256,5 +296,6 @@ public class XRayMonitor : MonoBehaviour
         RenderPipelineManager.beginCameraRendering -= OnBeginCamera;
         RenderPipelineManager.endCameraRendering -= OnEndCamera;
         if (_rt != null) _rt.Release();
+        if (_roadmapRT != null) _roadmapRT.Release();
     }
 }

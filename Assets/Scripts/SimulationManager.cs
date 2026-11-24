@@ -124,6 +124,7 @@ public class SimulationManager : MonoBehaviour
         clotTarget?.ResetClot();
         guidewireSimulator?.ResetGuidewire();
         _stent?.Hide();
+        FindFirstObjectByType<XRayMonitor>()?.ClearRoadmap();
         EnterPhase(SimPhase.Phase1_Navigation);
     }
 
