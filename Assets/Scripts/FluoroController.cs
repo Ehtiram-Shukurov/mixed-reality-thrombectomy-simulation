@@ -1,10 +1,9 @@
 using UnityEngine;
 
-// X-ray imaging. Hold A to turn your main view into plain fluoroscopy: bones and soft
-// tissue, vessels barely show. Press B (or left X) to inject contrast dye: it flows through
-// the vessels for a few seconds and the clot shows as the place where it stops. The dye
-// shows on the vessel model and on the X-ray monitor; your main view only changes while A
-// is held. Both count as imaging time.
+// X-ray imaging. Hold A (the fluoroscopy pedal) for live X-ray on the monitor; in Training
+// mode the 3D model also turns into X-ray while A is held. Press B (or left X) to inject
+// contrast dye: it flows through the vessels for a few seconds and the clot shows as the
+// place where it stops. Both count as imaging time.
 public class FluoroController : MonoBehaviour
 {
     [Header("References")]
@@ -13,6 +12,9 @@ public class FluoroController : MonoBehaviour
     [Header("Fluoro Shader Mode")]
     [Tooltip("The _RenderMode value that gives the X-ray view.")]
     public int fluoroRenderMode = 6;
+
+    [Tooltip("In Training mode, holding A also turns the 3D model into X-ray. In Assessment mode X-ray is only on the monitor.")]
+    public bool showXRayInSceneInTraining = true;
 
     [Header("Contrast")]
     [Tooltip("How long one injection lasts, in seconds.")]
@@ -68,9 +70,12 @@ public class FluoroController : MonoBehaviour
         if (SimInput.ContrastPressed && ContrastAllowed() && !ContrastActive) Inject();
         if (_contrastLeft > 0f) _contrastLeft = Mathf.Max(0f, _contrastLeft - Time.deltaTime);
 
+        // A is the fluoroscopy pedal: live X-ray on the monitor while held, as in a cath lab.
+        // The 3D model only turns into X-ray in Training mode, as a learning aid.
         bool aHeld = SimInput.FluoroHeld;
-        if (aHeld && !MainViewXRay) SwitchMainToXRay();
-        else if (!aHeld && MainViewXRay) RestoreMainView();
+        bool xrayInScene = aHeld && showXRayInSceneInTraining && SimMode.HintsOn;
+        if (xrayInScene && !MainViewXRay) SwitchMainToXRay();
+        else if (!xrayInScene && MainViewXRay) RestoreMainView();
 
         IsActive = aHeld || ContrastActive;
         if (IsActive) TotalExposureTime += Time.deltaTime;

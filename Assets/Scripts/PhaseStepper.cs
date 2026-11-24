@@ -20,7 +20,6 @@ public class PhaseStepper : MonoBehaviour
     public float fadeSpeed = 8f;
 
     private int _lastStep = -1;
-    private ClotTarget _clot;
     private float _punch;
 
     void Update()
@@ -39,11 +38,7 @@ public class PhaseStepper : MonoBehaviour
         }
 
         if (stepLabel != null)
-        {
-            if (_clot == null) _clot = FindFirstObjectByType<ClotTarget>();
-            string caseText = _clot != null && _clot.CaseLabel.Length > 0 ? "  ·  " + _clot.CaseLabel : "";
-            stepLabel.text = (step < segments.Length ? $"Step {step + 1} of {segments.Length}" : "Complete") + caseText;
-        }
+            stepLabel.text = step < segments.Length ? $"Step {step + 1} of {segments.Length}" : "Complete";
 
         // Pop on phase change.
         _punch = Mathf.MoveTowards(_punch, 0f, Time.unscaledDeltaTime * 4f);

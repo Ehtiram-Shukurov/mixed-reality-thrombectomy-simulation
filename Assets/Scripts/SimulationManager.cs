@@ -33,9 +33,22 @@ public class SimulationManager : MonoBehaviour
     [Tooltip("Seconds the stent stays open on the clot before you can pull back. Real procedures wait a few minutes; this is shortened.")]
     public float stentDwellSeconds = 3f;
 
+    [Header("Case difficulty (twist window in degrees, hold in seconds)")]
+    public float easyTolerance = 25f;
+    public float easyHold = 0.25f;
+    public float mediumTolerance = 20f;
+    public float mediumHold = 0.4f;
+    public float hardTolerance = 12f;
+    public float hardHold = 0.7f;
+    [Tooltip("Bend angle (degrees) where pushing hard counts as forcing, per level.")]
+    public float easyForceAngle = 55f, mediumForceAngle = 45f, hardForceAngle = 38f;
+
     [Header("Outcome")]
-    [Tooltip("Extraction penalty in one pass above which a clot fragment stays behind. Each speed warning adds 5. A rule for the simulation, not clinical data.")]
-    public int fragmentPenaltyThreshold = 10;
+    [Tooltip("Seconds of pulling too fast in one pass before a clot fragment stays behind. A rule for the simulation, not clinical data.")]
+    public float fragmentTooFastSeconds = 2f;
+    // Seconds pulled too fast in the current pass. Shown in the result message.
+    public float PassTooFastSeconds => _passTooFast;
+    private float _passTooFast;
     public int maxPasses = 3;
     [Tooltip("Seconds the control angiogram runs before the result shows.")]
     public float angioSeconds = 4.5f;
@@ -116,6 +129,8 @@ public class SimulationManager : MonoBehaviour
     void Update()
     {
         if (_timerRunning) _totalTime += Time.deltaTime;
+        if (CurrentPhase == SimPhase.Phase2c_Extraction && catheterSimulator != null && catheterSimulator.IsTooFast)
+            _passTooFast += Time.deltaTime;
 
         switch (CurrentPhase)
         {
@@ -165,6 +180,61 @@ public class SimulationManager : MonoBehaviour
         EnterPhase(SimPhase.Phase1_Navigation);
     }
 
+    // Harder cases need a more precise twist at each fork and a longer steady hold.
+    private void ApplyCaseDifficulty()
+    {
+        if (guidewireSimulator == null || clotTarget == null) return;
+        switch (clotTarget.caseLevel)
+        {
+            case ClotTarget.CaseLevel.Easy:
+                guidewireSimulator.alignmentTolerance = easyTolerance;
+                guidewireSimulator.alignHoldSeconds = easyHold;
+                guidewireSimulator.forceAngle = easyForceAngle;
+                break;
+            case ClotTarget.CaseLevel.Hard:
+                guidewireSimulator.alignmentTolerance = hardTolerance;
+                guidewireSimulator.alignHoldSeconds = hardHold;
+                guidewireSimulator.forceAngle = hardForceAngle;
+                break;
+            default:
+                guidewireSimulator.alignmentTolerance = mediumTolerance;
+                guidewireSimulator.alignHoldSeconds = mediumHold;
+                guidewireSimulator.forceAngle = mediumForceAngle;
+                break;
+        }
+    }
+
+    // Hooked to the Case button on the menu: next level and a fresh run.
+    public void CycleCase(bool _)
+    {
+        if (clotTarget == null) return;
+        clotTarget.NextCase();
+        RestartRun();
+        GuidewireUI.Notify(clotTarget.caseLevel switch
+        {
+            ClotTarget.CaseLevel.Easy => "Easy case: short route, forks accept a wide twist. Run restarted.",
+            ClotTarget.CaseLevel.Hard => "Hard case: most forks on the route, forks need a tight twist. Run restarted.",
+            _ => "Medium case: longer route, normal twist at forks. Run restarted."
+        }, 4f);
+    }
+
+    // Seconds since the current phase started. Used to show the case at the start of a run.
+    public float TimeInPhase => Time.time - _phaseStartTime;
+    private float _phaseStartTime;
+
+    // Hooked to the Assessment toggle on the menu (On Value Changed, dynamic bool).
+    // Takes effect right away; the run log records the mode at the end of the run.
+    public void SetAssessmentMode(bool on)
+    {
+        bool changed = SimMode.Assessment != on;
+        SimMode.Assessment = on;
+        if (changed)
+            GuidewireUI.Notify(on
+                ? "Assessment mode: no fork hints, no clot marker, no X-ray on the model. Results are scored."
+                : "Training mode: fork hints, clot marker and X-ray on the model are back.", 4f);
+        Debug.Log("[SimManager] " + (on ? "Assessment mode: hints off." : "Training mode: hints on."));
+    }
+
     // Frame of the last phase change, so a button press that changed the phase is not reused.
     public int PhaseChangedFrame { get; private set; } = -1;
 
@@ -172,6 +242,7 @@ public class SimulationManager : MonoBehaviour
     {
         CurrentPhase = phase;
         PhaseChangedFrame = Time.frameCount;
+        _phaseStartTime = Time.time;
         if (_started) Feedback.PhaseChanged();
         _started = true;
 
@@ -192,6 +263,7 @@ public class SimulationManager : MonoBehaviour
                 fluoroController?.ResetTimer();
                 if (_dye != null) _dye.Reperfused = false;
                 if (resultsPanel != null) resultsPanel.gameObject.SetActive(false);
+                ApplyCaseDifficulty();
                 SetGuidewire(true);
                 Debug.Log("[SimManager] Phase 1 — Navigate guidewire to clot.");
                 break;
@@ -215,6 +287,7 @@ public class SimulationManager : MonoBehaviour
                 if (clotTarget != null && catheterSimulator != null)
                     clotTarget.Capture(catheterSimulator, _clotBehindTip);
                 _passPenalty = 0;
+                _passTooFast = 0f;
                 catheterSimulator?.BeginRetraction();
                 Debug.Log("[SimManager] Phase 2c — Extract clot.");
                 break;
@@ -222,7 +295,9 @@ public class SimulationManager : MonoBehaviour
             case SimPhase.Phase2d_ControlAngio:
                 // Pulling too fast in this pass leaves a fragment behind. Then dye shows the result.
                 _passes++;
-                _reopened = _passPenalty <= fragmentPenaltyThreshold;
+                // Counting how long the pull was too fast, not how many times it crossed the limit:
+                // a hand on a stick drifts over and back many times without being rough.
+                _reopened = _passTooFast <= fragmentTooFastSeconds;
                 _stent?.Hide();
                 if (_reopened) clotTarget?.Release();
                 else clotTarget?.LeaveFragment();
@@ -355,6 +430,7 @@ public class SimulationManager : MonoBehaviour
                 + "\"forcedBends\":" + _forcedBends + ","
                 + "\"contrastRuns\":" + (fluoroController != null ? fluoroController.ContrastRuns : 0) + ","
                 + "\"speedWarnings\":" + _speedWarnings + ","
+                + "\"mode\":\"" + (SimMode.Assessment ? "assessment" : "training") + "\","
                 + "\"case\":\"" + (clotTarget != null ? clotTarget.caseLevel.ToString() : "") + "\","
                 + "\"forksOnPath\":" + (clotTarget != null ? clotTarget.ForksOnPath : 0) + ","
                 + "\"passes\":" + _passes + ","

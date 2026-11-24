@@ -17,7 +17,7 @@ public static class SimInput
     {
         UseOverride = false;
         StickOverride = Vector2.zero;
-        FluoroOverride = StentOverride = RestartOverride = ConfirmOverride = ContrastOverride = false;
+        FluoroOverride = StentOverride = RestartOverride = ConfirmOverride = ContrastOverride = CArmOverride = false;
     }
 
     // Inject contrast dye (true once per press): right B, or left X if the left controller is held.
@@ -51,6 +51,12 @@ public static class SimInput
             return OVRInput.GetLocalControllerRotation(OVRInput.Controller.RTouch);
         }
     }
+
+    // Right stick click on its own (a short tap turns the C-arm; a 2 s hold restarts).
+    public static bool CArmOverride;
+    public static bool RightStickClick => UseOverride
+        ? CArmOverride
+        : OVRInput.Get(OVRInput.Button.PrimaryThumbstick, OVRInput.Controller.RTouch);
 
     // Right A: hold for fluoroscopy.
     public static bool FluoroHeld => UseOverride

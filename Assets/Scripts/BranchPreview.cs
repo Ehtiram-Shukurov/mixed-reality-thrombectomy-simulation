@@ -78,6 +78,9 @@ public class BranchPreview : MonoBehaviour
                 n = n.branches.Count > 0 ? n.branches[0] : null;
             }
 
+            // Branch lines are a hint: off in Assessment mode.
+            if (!SimMode.HintsOn) { lr.enabled = false; continue; }
+
             bool selected = i == guidewire.SelectedBranch;
             Color c = !selected ? otherColor : (aligned ? alignedColor : selectedColor);
             lr.startColor = lr.endColor = c;

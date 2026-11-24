@@ -32,11 +32,28 @@ public class GuidewireUI : MonoBehaviour
         UpdateFork();
     }
 
+    // A short message that replaces the instruction for a few seconds, after a menu setting changes.
+    private static string _notice;
+    private static float _noticeUntil;
+    public static void Notify(string message, float seconds = 3f)
+    {
+        _notice = message;
+        _noticeUntil = Time.time + seconds;
+    }
+
     private void UpdateInstruction()
     {
         if (instructionText == null || simManager == null) return;
+        if (_notice != null && Time.time < _noticeUntil)
+        {
+            instructionText.text = _notice;
+            return;
+        }
 
         string phase1 = "Press B to inject dye and find the clot. Push to advance. Twist at forks.";
+        // Say which case this is for the first seconds of a run.
+        if (clotTarget != null && clotTarget.CaseLabel.Length > 0 && simManager.TimeInPhase < 5f && !clotTarget.IsTouched)
+            phase1 = clotTarget.CaseLabel + ". " + phase1;
         if (clotTarget != null && clotTarget.IsTouched)
             phase1 = "Wire is at the clot. Keep pushing to cross it.";
         else if (clotTarget != null && clotTarget.IsRoadmapped)
@@ -63,9 +80,10 @@ public class GuidewireUI : MonoBehaviour
     {
         if (!simManager.AngioDone) return "Control angiogram. Watch where the dye goes.";
         if (simManager.Reopened) return "Dye flows past. The vessel is open.";
+        string why = $"You pulled too fast for {simManager.PassTooFastSeconds:F1} s, so a piece of clot stayed.";
         return simManager.CanTryAgain
-            ? "Dye still stops at a piece of clot. B: another pass. A: finish."
-            : "Dye still stops at a piece of clot. No passes left.";
+            ? why + " B: another pass. A: finish."
+            : why + " No passes left.";
     }
 
     private void UpdatePhase()
@@ -105,7 +123,8 @@ public class GuidewireUI : MonoBehaviour
 
         bool atFork = guidewireSimulator.IsReady && guidewireSimulator.IsAtFork;
         bool deadEnd = guidewireSimulator.IsReady && guidewireSimulator.IsAtDeadEnd;
-        bool bend = guidewireSimulator.IsReady && guidewireSimulator.enabled && guidewireSimulator.BendAmount > 0.3f;
+        // The bend text is a hint; in Assessment mode only the haptic push-back is left.
+        bool bend = SimMode.HintsOn && guidewireSimulator.IsReady && guidewireSimulator.enabled && guidewireSimulator.BendAmount > 0.3f;
         bool show = atFork || deadEnd || bend;
         forkText.gameObject.SetActive(show);
         if (forkBadge != null) forkBadge.gameObject.SetActive(show);
@@ -129,6 +148,16 @@ public class GuidewireUI : MonoBehaviour
 
         int dir = guidewireSimulator.TwistDirection;
         bool hasBadge = forkBadge != null;
+
+        // Assessment mode: say there is a fork, nothing about which way to turn.
+        if (!SimMode.HintsOn)
+        {
+            forkText.color = hasBadge ? Dark : Color.yellow;
+            if (hasBadge) forkBadge.color = Amber;
+            forkText.text = "<size=70%>FORK REACHED</size>\nChoose a branch";
+            return;
+        }
+
         if (dir == 0)
         {
             forkText.color = hasBadge ? Dark : Color.green;
