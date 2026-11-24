@@ -60,7 +60,7 @@ public class MenuStateLabel : MonoBehaviour
                 }
                 break;
             case Kind.Settings:
-                text = Text("SETTINGS", "Options", "view, sound, home");
+                text = "<b>Settings</b>";
                 break;
             case Kind.View:
                 if (_view != null)

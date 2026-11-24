@@ -97,6 +97,7 @@ public class AppShell : MonoBehaviour
     void Update()
     {
         if (SettingsShowing) RefreshSettingsLabels();
+        if (casePicker != null && casePicker.activeSelf) Set(hintsLabel, "Hints", _practiceHints ? "On" : "Off");
 
         if (!_home) return;
         FollowHead();
@@ -305,15 +306,17 @@ public class AppShell : MonoBehaviour
         }
     }
 
-    // Guided: easy case with the tutorial. Assessment: no hints, from the easy case.
+    // Learn: the easy case with hints and the step-by-step tutorial.
     public void StartGuided() => Go(ClotTarget.CaseLevel.Easy, false, true);
-    public void StartAssessment() => Go(ClotTarget.CaseLevel.Easy, true, false);
 
-    // Practice: pick a case first.
+    // Practice: pick a case and whether hints are on. Hints off is the old Assessment.
+    public TextMeshProUGUI hintsLabel;
+    private bool _practiceHints = true;
     public void StartPractice() { if (casePicker != null) casePicker.SetActive(true); }
-    public void PracticeEasy() => Go(ClotTarget.CaseLevel.Easy, false, false);
-    public void PracticeMedium() => Go(ClotTarget.CaseLevel.Medium, false, false);
-    public void PracticeHard() => Go(ClotTarget.CaseLevel.Hard, false, false);
+    public void ToggleHints() => _practiceHints = !_practiceHints;
+    public void PracticeEasy() => Go(ClotTarget.CaseLevel.Easy, !_practiceHints, false);
+    public void PracticeMedium() => Go(ClotTarget.CaseLevel.Medium, !_practiceHints, false);
+    public void PracticeHard() => Go(ClotTarget.CaseLevel.Hard, !_practiceHints, false);
     public void ClosePicker() { if (casePicker != null) casePicker.SetActive(false); }
 
     private void Go(ClotTarget.CaseLevel level, bool assessment, bool tutorial)
