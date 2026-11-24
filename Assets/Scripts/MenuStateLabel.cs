@@ -19,6 +19,8 @@ public class MenuStateLabel : MonoBehaviour
     private Image _background;
     private ClotTarget _clot;
     private VolumeViewPresets _view;
+    private Color _written = Color.clear;
+    private float _factor = 1f;
 
     void Start()
     {
@@ -66,7 +68,9 @@ public class MenuStateLabel : MonoBehaviour
         }
 
         if (_label != null && text != null && _label.text != text) _label.text = text;
-        if (_background != null) _background.color = active ? activeTint : tint;
+        // Keep the animator's hover and press shading on top of the amber.
+        if (_background != null)
+            MenuTileStyle.Apply(_background, active ? activeTint : tint, ref _written, ref _factor);
         if (kind != Kind.Mode && _toggle != null && _toggle.isOn) _toggle.SetIsOnWithoutNotify(false);
     }
 }

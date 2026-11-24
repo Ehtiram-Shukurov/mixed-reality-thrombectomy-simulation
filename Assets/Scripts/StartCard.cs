@@ -109,7 +109,8 @@ public class StartCard : MonoBehaviour
                      + Row("Hold stick", "restart")
                      + $"\n<color={Grey}>Hands</color>\n"
                      + Row("Pinch", "grab model")
-                     + Row("Poke", "menu buttons");
+                     + Row("Poke", "menu buttons")
+                     + Row("Left palm pinch", "hide menu");
                 foot = "A  next";
                 break;
 

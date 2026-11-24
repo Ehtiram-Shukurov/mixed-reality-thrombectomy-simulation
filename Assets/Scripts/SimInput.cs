@@ -17,7 +17,7 @@ public static class SimInput
     {
         UseOverride = false;
         StickOverride = Vector2.zero;
-        FluoroOverride = StentOverride = RestartOverride = ConfirmOverride = ContrastOverride = CArmOverride = false;
+        FluoroOverride = StentOverride = RestartOverride = ConfirmOverride = ContrastOverride = CArmOverride = MenuOverride = false;
     }
 
     // Inject contrast dye (true once per press): right B, or left X if the left controller is held.
@@ -83,6 +83,20 @@ public static class SimInput
             if (!UseOverride) return OVRInput.GetDown(OVRInput.Button.One, OVRInput.Controller.RTouch);
             bool v = ConfirmOverride;
             ConfirmOverride = false;
+            return v;
+        }
+    }
+
+    // Show or hide the menu (true once per press): the Start button, which is the menu button
+    // on the left controller and, with hand tracking, the left palm-up pinch.
+    public static bool MenuOverride;
+    public static bool MenuTogglePressed
+    {
+        get
+        {
+            if (!UseOverride) return OVRInput.GetDown(OVRInput.Button.Start, OVRInput.Controller.All);
+            bool v = MenuOverride;
+            MenuOverride = false;
             return v;
         }
     }
