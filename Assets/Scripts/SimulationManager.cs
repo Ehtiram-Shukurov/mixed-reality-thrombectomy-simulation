@@ -13,6 +13,7 @@ public class SimulationManager : MonoBehaviour
         Phase2a_CatheterAdvance,
         Phase2b_StentDeploy,
         Phase2c_Extraction,
+        Phase2d_ControlAngio,
         Phase3_Results
     }
 
@@ -32,6 +33,13 @@ public class SimulationManager : MonoBehaviour
     [Tooltip("Seconds the stent stays open on the clot before you can pull back. Real procedures wait a few minutes; this is shortened.")]
     public float stentDwellSeconds = 3f;
 
+    [Header("Outcome")]
+    [Tooltip("Extraction penalty in one pass above which a clot fragment stays behind. Each speed warning adds 5. A rule for the simulation, not clinical data.")]
+    public int fragmentPenaltyThreshold = 10;
+    public int maxPasses = 3;
+    [Tooltip("Seconds the control angiogram runs before the result shows.")]
+    public float angioSeconds = 4.5f;
+
     [Header("Restart")]
     [Tooltip("Hold left Y this long to restart the run.")]
     public float restartHoldSeconds = 2f;
@@ -42,6 +50,21 @@ public class SimulationManager : MonoBehaviour
     public bool StentDeployed => _stentDeployed;
     // 0 to 1 while the stent settles on the clot.
     public float StentDwell01 => _stentDeployed ? Mathf.Clamp01(_dwell / Mathf.Max(0.1f, stentDwellSeconds)) : 0f;
+
+    // Outcome of the passes so far.
+    public int Passes => _passes;
+    public bool Reopened => _reopened;
+    public bool CanTryAgain => !_reopened && _passes < maxPasses;
+    // The control angiogram has run long enough for the choice to be shown.
+    public bool AngioDone => CurrentPhase == SimPhase.Phase2d_ControlAngio && _angioTimer >= angioSeconds;
+    public string OutcomeText => _reopened
+        ? $"Reopened, {_passes} pass{(_passes == 1 ? "" : "es")}"
+        : $"Still blocked, {_passes} pass{(_passes == 1 ? "" : "es")}";
+
+    private int _passes;
+    private int _passPenalty;
+    private bool _reopened;
+    private float _angioTimer;
 
     private float _totalTime = 0f;
     private bool _timerRunning = false;
@@ -88,6 +111,7 @@ public class SimulationManager : MonoBehaviour
         switch (CurrentPhase)
         {
             case SimPhase.Phase2b_StentDeploy: CheckStentButton(); break;
+            case SimPhase.Phase2d_ControlAngio: HandleControlAngio(); break;
         }
 
         // Controller shortcut for Play Again, in case the poke button is hard to reach.
@@ -145,6 +169,8 @@ public class SimulationManager : MonoBehaviour
                 _speedWarnings = 0;
                 _wrongTurns = 0;
                 _deadEnds = 0;
+                _passes = 0;
+                _reopened = false;
                 fluoroController?.ResetTimer();
                 if (_dye != null) _dye.Reperfused = false;
                 if (resultsPanel != null) resultsPanel.gameObject.SetActive(false);
@@ -153,7 +179,11 @@ public class SimulationManager : MonoBehaviour
                 break;
 
             case SimPhase.Phase2a_CatheterAdvance:
+                // Also the start of a second or third pass: the wire stays across the clot.
                 SetGuidewire(false);
+                _stentDeployed = false;
+                _dwell = 0f;
+                catheterSimulator?.ResetCatheter();
                 catheterSimulator?.BeginAdvance();
                 Debug.Log("[SimManager] Phase 2a — Advance catheter to clot.");
                 break;
@@ -166,17 +196,30 @@ public class SimulationManager : MonoBehaviour
                 // The clot comes back with the stent, which sits on it behind the catheter tip.
                 if (clotTarget != null && catheterSimulator != null)
                     clotTarget.Capture(catheterSimulator, _clotBehindTip);
+                _passPenalty = 0;
                 catheterSimulator?.BeginRetraction();
                 Debug.Log("[SimManager] Phase 2c — Extract clot.");
+                break;
+
+            case SimPhase.Phase2d_ControlAngio:
+                // Pulling too fast in this pass leaves a fragment behind. Then dye shows the result.
+                _passes++;
+                _reopened = _passPenalty <= fragmentPenaltyThreshold;
+                _stent?.Hide();
+                if (_reopened) clotTarget?.Release();
+                else clotTarget?.LeaveFragment();
+                if (_dye != null) _dye.Reperfused = _reopened;
+                _angioTimer = 0f;
+                fluoroController?.Inject();
+                Debug.Log($"[SimManager] Control angiogram after pass {_passes}: {(_reopened ? "reopened" : "fragment left")}.");
                 break;
 
             case SimPhase.Phase3_Results:
                 _timerRunning = false;
                 SetGuidewire(false);
-                clotTarget?.Release();
+                if (_reopened) clotTarget?.Release();
                 _stent?.Hide();
-                if (_dye != null) _dye.Reperfused = true;
-                Feedback.Success();
+                if (_reopened) Feedback.Success();
                 ShowResults();
                 Debug.Log("[SimManager] Phase 3 — Results.");
                 break;
@@ -224,13 +267,26 @@ public class SimulationManager : MonoBehaviour
     public void OnCatheterFullyRetracted()
     {
         if (CurrentPhase == SimPhase.Phase2c_Extraction)
-            EnterPhase(SimPhase.Phase3_Results);
+            EnterPhase(SimPhase.Phase2d_ControlAngio);
+    }
+
+    // After the control angiogram: reopened goes to the results; a fragment lets you
+    // choose another pass (B) or finish (A).
+    private void HandleControlAngio()
+    {
+        _angioTimer += Time.deltaTime;
+        if (_angioTimer < angioSeconds) return;
+
+        if (!CanTryAgain) { EnterPhase(SimPhase.Phase3_Results); return; }
+        if (SimInput.StentPressed) EnterPhase(SimPhase.Phase2a_CatheterAdvance);
+        else if (SimInput.ConfirmPressed) EnterPhase(SimPhase.Phase3_Results);
     }
 
     // Called by CatheterSimulator on each speed warning
     public void AddExtractionPenalty(int points)
     {
         _extractionPenalty += points;
+        _passPenalty += points;
         _speedWarnings++;
     }
 
@@ -252,6 +308,7 @@ public class SimulationManager : MonoBehaviour
         string rating = ExtractionRating(out Color color);
         int contrast = fluoroController != null ? fluoroController.ContrastRuns : 0;
         resultsPanel?.ShowResults(_totalTime, exposure, rating, color, _wrongTurns, _deadEnds, contrast);
+        resultsPanel?.ShowOutcome(OutcomeText, _reopened);
         WriteRunLog(exposure, rating);
     }
 
@@ -279,6 +336,8 @@ public class SimulationManager : MonoBehaviour
                 + "\"deadEnds\":" + _deadEnds + ","
                 + "\"contrastRuns\":" + (fluoroController != null ? fluoroController.ContrastRuns : 0) + ","
                 + "\"speedWarnings\":" + _speedWarnings + ","
+                + "\"passes\":" + _passes + ","
+                + "\"reopened\":" + (_reopened ? "true" : "false") + ","
                 + "\"rating\":\"" + rating + "\","
                 + "\"clotNode\":" + clotId
                 + "}";

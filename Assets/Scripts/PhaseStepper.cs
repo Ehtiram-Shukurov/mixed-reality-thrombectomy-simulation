@@ -61,6 +61,7 @@ public class PhaseStepper : MonoBehaviour
             case SimulationManager.SimPhase.Phase2a_CatheterAdvance: return 1;
             case SimulationManager.SimPhase.Phase2b_StentDeploy: return 2;
             case SimulationManager.SimPhase.Phase2c_Extraction: return 3;
+            case SimulationManager.SimPhase.Phase2d_ControlAngio: return 3;
             case SimulationManager.SimPhase.Phase3_Results: return 4;
             default: return 0;
         }

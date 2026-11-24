@@ -68,6 +68,16 @@ public class ResultsPanel : MonoBehaviour
         gameObject.SetActive(true);
     }
 
+    // Outcome line in the panel's title: reopened or still blocked, and how many passes.
+    public void ShowOutcome(string text, bool good)
+    {
+        var title = transform.Find("Title");
+        var tmp = title != null ? title.GetComponent<TextMeshProUGUI>() : null;
+        if (tmp == null) return;
+        tmp.text = text;
+        tmp.color = good ? new Color(0.30f, 0.85f, 0.50f) : new Color(0.97f, 0.50f, 0.42f);
+    }
+
     void OnDisable()
     {
         transform.localScale = Vector3.one;

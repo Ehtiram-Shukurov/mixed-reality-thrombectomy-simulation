@@ -50,6 +50,7 @@ public class TipGlow : MonoBehaviour
                 return null;
             case SimulationManager.SimPhase.Phase2b_StentDeploy:
             case SimulationManager.SimPhase.Phase2c_Extraction:
+            case SimulationManager.SimPhase.Phase2d_ControlAngio:
                 return goodColor;
             default:
                 return atFork ? forkColor : atDeadEnd ? deadEndColor : normalColor;

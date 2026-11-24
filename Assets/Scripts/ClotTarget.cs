@@ -53,10 +53,13 @@ public class ClotTarget : MonoBehaviour
     private Renderer _markerRenderer;
     private Material _markerMat;
     private Transform _head;
+    private Vector3 _startScale;
+    private bool _fragment;
 
     void Start()
     {
         _renderer = GetComponent<Renderer>();
+        _startScale = transform.localScale;
         _clotMaterial = new Material(Shader.Find("Unlit/Color"));
         _clotMaterial.color = new Color(0.08f, 0.08f, 0.08f);
         _capturedMaterial = new Material(_clotMaterial);
@@ -170,6 +173,9 @@ public class ClotTarget : MonoBehaviour
             return;
         }
 
+        // A fragment left after a pass shows in the dye like the clot did.
+        if (_fragment) { UpdateFluoroVisual(); UpdateMarker(false); return; }
+
         if (!_isPlaced || IsReached) { UpdateMarker(false); return; }
         UpdateFluoroVisual();
         CheckDetection();
@@ -254,13 +260,32 @@ public class ClotTarget : MonoBehaviour
 
     public void Release()
     {
+        if (_fragment) { transform.localScale = _startScale; _fragment = false; }
         _captured = false;
         _follow = null;
         if (_renderer != null) _renderer.enabled = false;
     }
 
+    // After a pass that was too rough: a smaller piece stays where the clot was.
+    // It is hidden until dye shows it, like the original clot.
+    public void LeaveFragment(float shrink = 0.65f)
+    {
+        _captured = false;
+        _follow = null;
+        if (ClotNode != null) transform.position = centerlineLoader.GetNodeWorldPosition(ClotNode);
+        transform.localScale *= shrink;
+        if (_renderer != null)
+        {
+            _renderer.material = _clotMaterial;
+            _renderer.enabled = false;
+        }
+        _fluoroWasActive = false;
+        _fragment = true;
+    }
+
     public void ResetClot()
     {
+        if (_fragment) { transform.localScale = _startScale; _fragment = false; }
         IsReached = false;
         IsTouched = false;
         IsRoadmapped = false;

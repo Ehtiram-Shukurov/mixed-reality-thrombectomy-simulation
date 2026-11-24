@@ -52,9 +52,20 @@ public class GuidewireUI : MonoBehaviour
             SimulationManager.SimPhase.Phase2a_CatheterAdvance => "Catheter follows the wire across the clot. Push forward.",
             SimulationManager.SimPhase.Phase2b_StentDeploy => stent,
             SimulationManager.SimPhase.Phase2c_Extraction => "Pull back slowly. Keep the pace bar green. It buzzes if you go too fast.",
+            SimulationManager.SimPhase.Phase2d_ControlAngio => AngioText(),
             SimulationManager.SimPhase.Phase3_Results => "Procedure complete.",
             _ => ""
         };
+    }
+
+    // Control angiogram after a pass: watch the dye, then the result and the choice.
+    private string AngioText()
+    {
+        if (!simManager.AngioDone) return "Control angiogram. Watch where the dye goes.";
+        if (simManager.Reopened) return "Dye flows past. The vessel is open.";
+        return simManager.CanTryAgain
+            ? "Dye still stops at a piece of clot. B: another pass. A: finish."
+            : "Dye still stops at a piece of clot. No passes left.";
     }
 
     private void UpdatePhase()
@@ -67,6 +78,7 @@ public class GuidewireUI : MonoBehaviour
             SimulationManager.SimPhase.Phase2a_CatheterAdvance => "Catheter",
             SimulationManager.SimPhase.Phase2b_StentDeploy => "Deploy Stent",
             SimulationManager.SimPhase.Phase2c_Extraction => "Extraction",
+            SimulationManager.SimPhase.Phase2d_ControlAngio => "Check",
             SimulationManager.SimPhase.Phase3_Results => "Complete",
             _ => ""
         };

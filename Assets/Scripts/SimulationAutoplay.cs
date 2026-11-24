@@ -192,6 +192,15 @@ public class SimulationAutoplay : MonoBehaviour
         Log("pace: too fast seen " + sawTooFast + " (max ratio " + maxPace.ToString("F2") + ", meter alpha " + paceAlphaFast.ToString("F2") + ", text '" + paceTextFast + "'); "
             + "ok pace seen " + sawOk + " (ratio " + minPaceOk.ToString("F2") + ", meter alpha " + paceAlphaOk.ToString("F2") + ", text '" + paceTextOk + "')");
 
+        // ---- Control angiogram: wait for it, then finish if a choice is offered ----
+        t0 = Time.time;
+        while (_sm.CurrentPhase == SimulationManager.SimPhase.Phase2d_ControlAngio && Time.time - t0 < 30f)
+        {
+            if (_sm.AngioDone && _sm.CanTryAgain) SimInput.ConfirmOverride = true;
+            yield return null;
+        }
+        Log("control angiogram done: " + _sm.OutcomeText + ", phase now " + _sm.CurrentPhase);
+
         // ---- Phase 3 ----
         yield return new WaitForSecondsRealtime(0.5f);
         Log("results panel active " + _rp.gameObject.activeSelf + " | "
