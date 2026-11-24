@@ -7356,6 +7356,8 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::MenuStateLabel
   kind: 0
+  tint: {r: 0.36, g: 0.25, b: 0.05, a: 1}
+  activeTint: {r: 0.85, g: 0.52, b: 0.08, a: 1}
 --- !u!95 &369827011
 Animator:
   serializedVersion: 7
@@ -28136,6 +28138,8 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::MenuStateLabel
   kind: 1
+  tint: {r: 0.36, g: 0.25, b: 0.05, a: 1}
+  activeTint: {r: 0.85, g: 0.52, b: 0.08, a: 1}
 --- !u!95 &1555607662
 Animator:
   serializedVersion: 7
@@ -31623,6 +31627,7 @@ GameObject:
   - component: {fileID: 1736039330}
   - component: {fileID: 1736039332}
   - component: {fileID: 1736039331}
+  - component: {fileID: 1736039333}
   m_Layer: 3
   m_Name: AssessmentToggle
   m_TagString: QDSUIToggleButton
@@ -31733,6 +31738,21 @@ MonoBehaviour:
           m_BoolArgument: 0
         m_CallState: 2
   m_IsOn: 0
+--- !u!114 &1736039333
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1736039329}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: a7bb8c9fce007714185d6f40cc6a1642, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::MenuStateLabel
+  kind: 2
+  tint: {r: 0.36, g: 0.25, b: 0.05, a: 1}
+  activeTint: {r: 0.85, g: 0.52, b: 0.08, a: 1}
 --- !u!1 &1736812261
 GameObject:
   m_ObjectHideFlags: 0

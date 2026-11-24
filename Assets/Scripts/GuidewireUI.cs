@@ -32,9 +32,23 @@ public class GuidewireUI : MonoBehaviour
         UpdateFork();
     }
 
+    // A short message that replaces the instruction for a few seconds, after a menu setting changes.
+    private static string _notice;
+    private static float _noticeUntil;
+    public static void Notify(string message, float seconds = 3f)
+    {
+        _notice = message;
+        _noticeUntil = Time.time + seconds;
+    }
+
     private void UpdateInstruction()
     {
         if (instructionText == null || simManager == null) return;
+        if (_notice != null && Time.time < _noticeUntil)
+        {
+            instructionText.text = _notice;
+            return;
+        }
 
         string phase1 = "Press B to inject dye and find the clot. Push to advance. Twist at forks.";
         // Say which case this is for the first seconds of a run.

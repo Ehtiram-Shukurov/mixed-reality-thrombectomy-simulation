@@ -210,6 +210,12 @@ public class SimulationManager : MonoBehaviour
         if (clotTarget == null) return;
         clotTarget.NextCase();
         RestartRun();
+        GuidewireUI.Notify(clotTarget.caseLevel switch
+        {
+            ClotTarget.CaseLevel.Easy => "Easy case: short route, forks accept a wide twist. Run restarted.",
+            ClotTarget.CaseLevel.Hard => "Hard case: most forks on the route, forks need a tight twist. Run restarted.",
+            _ => "Medium case: longer route, normal twist at forks. Run restarted."
+        }, 4f);
     }
 
     // Seconds since the current phase started. Used to show the case at the start of a run.
@@ -220,7 +226,12 @@ public class SimulationManager : MonoBehaviour
     // Takes effect right away; the run log records the mode at the end of the run.
     public void SetAssessmentMode(bool on)
     {
+        bool changed = SimMode.Assessment != on;
         SimMode.Assessment = on;
+        if (changed)
+            GuidewireUI.Notify(on
+                ? "Assessment mode: no fork hints, no clot marker, no X-ray on the model. Results are scored."
+                : "Training mode: fork hints, clot marker and X-ray on the model are back.", 4f);
         Debug.Log("[SimManager] " + (on ? "Assessment mode: hints off." : "Training mode: hints on."));
     }
 
