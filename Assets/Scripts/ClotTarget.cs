@@ -2,7 +2,8 @@
 using System.Collections.Generic;
 using UnityEngine;
 
-// Places the clot randomly in the upper cerebral vessel region.
+// Places the clot in the upper part of the vessel tree. In this scan the top is the heart end
+// (the scan runs from the chest to the upper thighs), not the brain.
 // Invisible normally — visible as a dark filling defect in fluoro mode.
 // During extraction it rides on the catheter tip so you can see it come out.
 public class ClotTarget : MonoBehaviour
@@ -15,7 +16,7 @@ public class ClotTarget : MonoBehaviour
 
     [Header("Placement")]
     [Range(0.1f, 0.5f)]
-    [Tooltip("Top fraction of Z range used as candidate region (cerebral side).")]
+    [Tooltip("Top fraction of the Z range used for clot positions (the heart end of this scan).")]
     public float upperFraction = 0.3f;
 
     public enum CaseLevel { Easy, Medium, Hard, Random }

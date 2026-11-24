@@ -26,6 +26,8 @@ public class XRayMonitor : MonoBehaviour
     private Material _screenMat;
     private TextMeshPro _title;
     private TextMeshPro _status;
+    private TextMeshPro _controls;
+    private SimulationManager _sim;
     private bool _hasImage;
     private bool _axesReady;
     private Vector3 _viewLocal = Vector3.back;
@@ -61,8 +63,9 @@ public class XRayMonitor : MonoBehaviour
         // Dark bezel behind the screen.
         var bezel = FxUtil.MakeQuad("Bezel", transform);
         bezel.layer = uiLayer;
-        bezel.transform.localPosition = new Vector3(0f, 0.012f, 0.002f);
-        bezel.transform.localScale = new Vector3(screenSize + 0.016f, screenSize + 0.05f, 1f);
+        // Taller at the bottom to fit a line of controls under the screen.
+        bezel.transform.localPosition = new Vector3(0f, 0.002f, 0.002f);
+        bezel.transform.localScale = new Vector3(screenSize + 0.016f, screenSize + 0.07f, 1f);
         var bezelMat = new Material(Shader.Find("Unlit/Color")) { color = new Color(0.05f, 0.07f, 0.09f, 1f) };
         bezel.GetComponent<Renderer>().sharedMaterial = bezelMat;
 
@@ -84,6 +87,12 @@ public class XRayMonitor : MonoBehaviour
         _title.color = new Color(0.55f, 0.62f, 0.70f, 1f);
         _status = MakeText("Status", new Vector3(screenSize * 0.5f, screenSize * 0.5f + 0.02f, -0.001f),
                            TextAlignmentOptions.Right, uiLayer);
+
+        // One line under the screen: what the buttons do right now.
+        _controls = MakeText("Controls", new Vector3(-screenSize * 0.5f, -screenSize * 0.5f - 0.016f, -0.001f),
+                             TextAlignmentOptions.Left, uiLayer);
+        _controls.rectTransform.sizeDelta = new Vector2(screenSize, 0.018f);
+        _controls.color = new Color(0.80f, 0.86f, 0.92f, 1f);
 
         // The C-arm camera. Not an XR camera: it renders to the texture only.
         var camGo = new GameObject("CArmCamera");
@@ -252,6 +261,34 @@ public class XRayMonitor : MonoBehaviour
         _screenMat.SetFloat("_Dim", imaging ? 0f : 1f);
         UpdateRoadmap(imaging);
         SetStatus();
+        SetControls();
+    }
+
+    // What A, B and the stick do in this phase. Short, because it sits under the screen.
+    private void SetControls()
+    {
+        if (_controls == null) return;
+        if (_sim == null) _sim = FindFirstObjectByType<SimulationManager>();
+        if (_sim == null) { _controls.text = ""; return; }
+        string text;
+        switch (_sim.CurrentPhase)
+        {
+            case SimulationManager.SimPhase.Phase1_Navigation:
+                text = "Stick: push / pull / twist   A: X-ray   B: dye"; break;
+            case SimulationManager.SimPhase.Phase2a_CatheterAdvance:
+                text = "Stick up: advance catheter   A: X-ray   B: dye"; break;
+            case SimulationManager.SimPhase.Phase2b_StentDeploy:
+                text = _sim.StentDeployed ? "Wait while the stent settles" : "B: open the stent"; break;
+            case SimulationManager.SimPhase.Phase2c_Extraction:
+                text = "Stick down: pull back slowly   A: X-ray   B: dye"; break;
+            case SimulationManager.SimPhase.Phase2d_ControlAngio:
+                text = _sim.AngioDone && _sim.CanTryAgain ? "B: another pass   A: finish" : "Watch the dye"; break;
+            case SimulationManager.SimPhase.Phase3_Results:
+                text = "A: same case   B: next case"; break;
+            default:
+                text = ""; break;
+        }
+        _controls.text = text;
     }
 
     // Save one dye frame per injection, once the dye is fully in. The texture still holds the
