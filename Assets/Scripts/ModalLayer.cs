@@ -20,6 +20,7 @@ public class ModalLayer : MonoBehaviour
     public static event System.Action<bool> Changed;
 
     private readonly HashSet<ModalPanel> _open = new HashSet<ModalPanel>();
+    private readonly List<GameObject> _interactions = new List<GameObject>();
     private GameObject _backdrop;
     private OVRPassthroughLayer _passthrough;
     private bool _menuWasVisible;
@@ -36,6 +37,11 @@ public class ModalLayer : MonoBehaviour
     {
         Instance = this;
         _passthrough = FindFirstObjectByType<OVRPassthroughLayer>(FindObjectsInactive.Include);
+
+        // The poke surfaces only exist while a pop-up is open. Left on, they are an invisible
+        // wall in front of whatever is behind them.
+        foreach (Transform c in transform)
+            if (c.name.StartsWith("ISDK_")) { _interactions.Add(c.gameObject); c.gameObject.SetActive(false); }
 
         // A large dark quad behind the panels. Not part of the canvas, so the canvas stays small.
         // It ignores depth and draws after the scene, so the model and devices behind it dim too;
@@ -65,6 +71,7 @@ public class ModalLayer : MonoBehaviour
         if (!first) return;
 
         PlaceInFront();
+        foreach (var g in _interactions) g.SetActive(true);
         if (menuToggle != null) { _menuWasVisible = menuToggle.Visible; menuToggle.Set(false); }
         _backdrop.SetActive(true);
         Dim(true);
@@ -75,6 +82,7 @@ public class ModalLayer : MonoBehaviour
     {
         if (!_open.Remove(p) || _open.Count > 0) return;
         _backdrop.SetActive(false);
+        foreach (var g in _interactions) g.SetActive(false);
         Dim(false);
         if (menuToggle != null && _menuWasVisible) menuToggle.Set(true);
         Changed?.Invoke(false);

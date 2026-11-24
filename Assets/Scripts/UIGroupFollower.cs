@@ -59,6 +59,15 @@ public class UIGroupFollower : MonoBehaviour
         Step(_head.position, _head.eulerAngles.y, Time.unscaledDeltaTime, HandNear());
     }
 
+    // Measure the panels again. Call it when they are visible, because hidden parts are not
+    // counted and the panels would sit in the wrong place.
+    public void Remeasure()
+    {
+        if (!_ready) return;
+        foreach (var p in panels) p.centerInRootFrame = MeasureCenter(p.root);
+        Apply();
+    }
+
     // One update. Public so it can be tested without a headset.
     public void Step(Vector3 headPos, float headYaw, float dt, bool handNear)
     {

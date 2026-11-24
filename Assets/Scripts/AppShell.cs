@@ -275,6 +275,9 @@ public class AppShell : MonoBehaviour
         if (clotTarget != null) clotTarget.caseLevel = level;
         simManager?.PrepareRun(); // resets the wire, catheter and clot for this case
         menuToggle?.Set(true);
+        // Measure the left panels while they are showing, as they were before Home hid them.
+        if (phaseCard != null) phaseCard.SetActive(true);
+        FindFirstObjectByType<UIGroupFollower>()?.Remeasure();
         startCard?.SetTutorial(tutorial);
         startCard?.Show(false); // the case card pop-up; A starts the run
     }
