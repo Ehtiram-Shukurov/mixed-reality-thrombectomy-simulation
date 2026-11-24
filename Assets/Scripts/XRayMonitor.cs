@@ -20,6 +20,16 @@ public class XRayMonitor : MonoBehaviour
     public float fieldOfView = 48f;
     [Tooltip("Camera distance from the volume center, in volume sizes.")]
     public float distance = 1.25f;
+    [Tooltip("Show a real X-ray projection (absorption added up along each ray) instead of the stylized X-ray mode.")]
+    public bool useProjection = true;
+    [Tooltip("Ray steps for the projection. The monitor image is small, so more steps are cheap here.")]
+    public float projectionSteps = 96f;
+    [Tooltip("CT value treated as air in the projection (0 to 1). Tuned by eye in the editor.")]
+    public float projectionAirLevel = 0.55f;
+    [Tooltip("How strongly tissue absorbs in the projection.")]
+    public float projectionStrength = 4f;
+    [Tooltip("How strongly dye absorbs in the projection.")]
+    public float projectionDye = 3f;
 
     private Camera _cam;
     private RenderTexture _rt;
@@ -172,9 +182,12 @@ public class XRayMonitor : MonoBehaviour
 
         // Copy the current volume settings (textures, thresholds, hand clipping), then force X-ray.
         _proxyMat.CopyPropertiesFromMaterial(_loader.volumeMaterial);
-        _proxyMat.SetFloat("_RenderMode", fluoro != null ? fluoro.fluoroRenderMode : 6);
+        _proxyMat.SetFloat("_RenderMode", useProjection ? 7 : (fluoro != null ? fluoro.fluoroRenderMode : 6));
         _proxyMat.SetFloat("_Contrast", fluoro != null ? fluoro.ContrastLevel : 1f);
-        _proxyMat.SetFloat("_Steps", Mathf.Max(48f, _loader.volumeMaterial.GetFloat("_Steps")));
+        _proxyMat.SetFloat("_Steps", useProjection ? projectionSteps : Mathf.Max(48f, _loader.volumeMaterial.GetFloat("_Steps")));
+        _proxyMat.SetFloat("_DrrLow", projectionAirLevel);
+        _proxyMat.SetFloat("_DrrGain", projectionStrength);
+        _proxyMat.SetFloat("_DrrDye", projectionDye);
 
         _volumeWasOn = _volumeRenderer.enabled;
         _volumeRenderer.enabled = false;

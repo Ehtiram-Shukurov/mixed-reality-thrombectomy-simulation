@@ -23,6 +23,10 @@ Shader "Custom/DICOM_Volume_MIP_VR_Stable"
         _DepthFade ("Darken far surfaces in vessel modes (0 = off)", Range(0.0, 1.0)) = 0.35
         _Shading ("Surface lighting in vessel modes (0 = off, 1 = on)", Range(0.0, 1.0)) = 1.0
         _Jitter ("Ray start jitter in steps (0.01 = almost off, 0.5 = trade banding for noise)", Range(0.0, 1.0)) = 0.01
+        [Header(Mode 7 X ray projection for the monitor)]
+        _DrrLow ("CT value treated as air (0 to 1)", Range(0.0, 1.0)) = 0.35
+        _DrrGain ("Absorption strength", Range(0.1, 40.0)) = 6.0
+        _DrrDye ("Extra absorption of dye", Range(0.0, 10.0)) = 2.0
 
         [Header(VR Hand Interaction)]
         _LeftHandPos ("Left Hand Position (UV Space)", Vector) = (0,0,0,0)
@@ -95,6 +99,7 @@ Shader "Custom/DICOM_Volume_MIP_VR_Stable"
             half _DepthFade;
             half _Shading;
             half _Jitter;
+            float _DrrLow, _DrrGain, _DrrDye;
             float4 _LeftHandPos;
             float4 _RightHandPos;
             half _ClipRadius;
@@ -185,7 +190,8 @@ Shader "Custom/DICOM_Volume_MIP_VR_Stable"
                 int threshold = _RenderMode == 0 ? _Threshold : 1;
 
                 bool cameraInside = all(abs(ro) < 0.5);
-                if (!cameraInside)
+                // Mode 7 adds up all tissue, so it must not skip ahead to the first labelled brick.
+                if (!cameraInside && _RenderMode != 7)
                 {
                     float tSpan     = tfar - tnear;
                     float brickStep = tSpan / 16.0;
@@ -278,6 +284,27 @@ Shader "Custom/DICOM_Volume_MIP_VR_Stable"
                             cumulative_density += densityToAdd;
                             if (cumulative_density > earlyExit) break;
                         }
+                        else if (_RenderMode == 7)
+                        {
+                            // X-ray projection: add up how much each sample absorbs along the whole ray.
+                            // CT value above the air level counts as tissue; dye in reached vessels adds more.
+                            float raw = tex3Dlod(_VolumeTex, float4(uv, 0)).r;
+                            float mu = saturate((raw - _DrrLow) / max(1e-3, 1.0 - _DrrLow));
+                            float segRaw7 = tex3Dlod(_SegmentationTex, float4(uv, 0)).r;
+                            int label7 = round(segRaw7 * 117.0);
+                            if (label7 >= 22 && label7 <= 29)
+                            {
+                                float c7 = _Contrast;
+                                if (_VolDyeOn > 0.5)
+                                {
+                                    float dd7 = tex3Dlod(_VolDyeTex, float4(uv, 0)).r;
+                                    float reach7 = saturate((_VolDyeFront - dd7) / max(_VolDyeFeather, 1e-4));
+                                    c7 = lerp(_VolDyePlain, _Contrast, reach7);
+                                }
+                                mu += c7 * _DrrDye;
+                            }
+                            cumulative_density += mu;
+                        }
                         else if (_RenderMode == 0) {
                             float density = tex3Dlod(_VolumeTex, float4(uv, 0)).r;
                             if (density >= _Threshold && density <= _UpperThreshold)
@@ -334,6 +361,14 @@ Shader "Custom/DICOM_Volume_MIP_VR_Stable"
                     }
 
                     uv += stepVec;
+                }
+
+                if (_RenderMode == 7)
+                {
+                    // Beer-Lambert: transmitted light falls off exponentially with total absorption.
+                    // Output the absorbed share; the monitor inverts it so dense reads dark.
+                    float absorbed = 1.0 - exp(-_DrrGain * cumulative_density * length(stepVec));
+                    return fixed4(absorbed.xxx, 1);
                 }
 
                 if (_RenderMode == 0 || _RenderMode == 6)
