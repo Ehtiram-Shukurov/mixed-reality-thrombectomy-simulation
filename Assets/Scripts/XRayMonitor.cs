@@ -109,7 +109,7 @@ public class XRayMonitor : MonoBehaviour
         // Taller at the bottom to fit a line of controls under the screen.
         bezel.transform.localPosition = new Vector3(0f, 0.002f, 0.002f);
         bezel.transform.localScale = new Vector3(screenSize + 0.016f, screenSize + 0.07f, 1f);
-        var bezelMat = new Material(Shader.Find("Unlit/Color")) { color = new Color(0.05f, 0.07f, 0.09f, 1f) };
+        var bezelMat = new Material(Shader.Find("Unlit/Color")) { color = new Color(0.06f, 0.066f, 0.075f, 1f) };
         bezel.GetComponent<Renderer>().sharedMaterial = bezelMat;
 
         // The image.

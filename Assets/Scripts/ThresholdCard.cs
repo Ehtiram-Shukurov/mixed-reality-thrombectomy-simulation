@@ -9,8 +9,8 @@ public class ThresholdCard : MonoBehaviour
     public Slider low, high;
     public TextMeshProUGUI lowValue, highValue;
 
-    public Color track = new Color(0.15f, 0.18f, 0.23f, 1f);
-    public Color fill = new Color(0.18f, 0.83f, 0.75f, 1f);
+    public Color track = new Color(0.16f, 0.175f, 0.195f, 1f);
+    public Color fill = new Color(0.17f, 0.77f, 0.71f, 1f);
     public Color handle = Color.white;
 
     private float _lastLow = -1f, _lastHigh = -1f;

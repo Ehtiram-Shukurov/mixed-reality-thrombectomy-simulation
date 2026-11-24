@@ -22,7 +22,9 @@ public class GuidewireUI : MonoBehaviour
     private static readonly Color Dark = new Color(0.04f, 0.08f, 0.09f, 1f);
     private static readonly Color Amber = new Color(0.98f, 0.75f, 0.14f, 0.95f);
     private static readonly Color Green = new Color(0.30f, 0.85f, 0.50f, 0.95f);
-    private static readonly Color Coral = new Color(0.97f, 0.50f, 0.42f, 0.95f);
+    private static readonly Color Coral = new Color(0.90f, 0.33f, 0.29f, 0.95f);
+    // Information (fork reached). Amber is kept for cautions, red for errors.
+    private static readonly Color Teal = new Color(0.17f, 0.77f, 0.71f, 0.95f);
 
     void Update()
     {
@@ -159,8 +161,8 @@ public class GuidewireUI : MonoBehaviour
         // Assessment mode: say there is a fork, nothing about which way to turn.
         if (!SimMode.HintsOn)
         {
-            forkText.color = hasBadge ? Dark : Color.yellow;
-            if (hasBadge) forkBadge.color = Amber;
+            forkText.color = hasBadge ? Dark : Color.cyan;
+            if (hasBadge) forkBadge.color = Teal;
             forkText.text = "<size=70%>FORK REACHED</size>\nChoose a branch";
             return;
         }
@@ -173,8 +175,8 @@ public class GuidewireUI : MonoBehaviour
         }
         else
         {
-            forkText.color = hasBadge ? Dark : Color.yellow;
-            if (hasBadge) forkBadge.color = Amber;
+            forkText.color = hasBadge ? Dark : Color.cyan;
+            if (hasBadge) forkBadge.color = Teal;
             forkText.text = dir < 0 ? "<size=70%>FORK REACHED</size>\n<< Twist left"
                                     : "<size=70%>FORK REACHED</size>\nTwist right >>";
         }

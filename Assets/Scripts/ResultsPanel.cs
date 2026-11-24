@@ -50,17 +50,17 @@ public class ResultsPanel : MonoBehaviour
         int min = Mathf.FloorToInt(totalTime / 60f);
         int sec = Mathf.FloorToInt(totalTime % 60f);
 
-        const string label = "<size=60%><color=#8B96A5>{0}</color></size>\n";
+        const string label = "<size=60%><color=#9AA1A9>{0}</color></size>\n";
         if (totalTimeText != null) totalTimeText.text = string.Format(label, "Total time") + $"{min:00}:{sec:00}";
         if (radiationText != null) radiationText.text = string.Format(label, "Fluoroscopy") + $"{fluoroSeconds:F1} s";
         if (safetyScoreText != null)
         {
-            safetyScoreText.text = $"<color=#8B96A5>Extraction</color>   {rating}";
+            safetyScoreText.text = $"<color=#9AA1A9>Extraction</color>   {rating}";
             safetyScoreText.color = ratingColor;
         }
         if (routeText != null)
         {
-            routeText.text = $"<size=80%><color=#8B96A5>Wrong turns</color> {wrongTurns}  <color=#8B96A5>Dead ends</color> {deadEnds}  <color=#8B96A5>Forced</color> {forcedBends}  <color=#8B96A5>Dye</color> {contrastRuns}</size>";
+            routeText.text = $"<size=80%><color=#9AA1A9>Wrong turns</color> {wrongTurns}  <color=#9AA1A9>Dead ends</color> {deadEnds}  <color=#9AA1A9>Forced</color> {forcedBends}  <color=#9AA1A9>Dye</color> {contrastRuns}</size>";
         }
 
         // The phase card sits in the same spot, so hide it while results show.

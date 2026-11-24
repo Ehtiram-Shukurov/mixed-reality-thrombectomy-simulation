@@ -1210,7 +1210,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: UnityEngine.UI::UnityEngine.UI.Image
   m_Material: {fileID: 0}
-  m_Color: {r: 0.13, g: 0.16, b: 0.2, a: 1}
+  m_Color: {r: 0.118, g: 0.13, b: 0.15, a: 1}
   m_RaycastTarget: 0
   m_RaycastPadding: {x: 0, y: 0, z: 0, w: 0}
   m_Maskable: 1
@@ -1933,6 +1933,7 @@ GameObject:
   - component: {fileID: 87670087}
   - component: {fileID: 87670086}
   - component: {fileID: 87670085}
+  - component: {fileID: 87670091}
   m_Layer: 3
   m_Name: UIBackplate+GridLayoutGroup (1)
   m_TagString: QDSUIBackplateGradient
@@ -2018,7 +2019,7 @@ MonoBehaviour:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 87670083}
-  m_Enabled: 1
+  m_Enabled: 0
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 56549cdaaf4d81e4387b02698fd3daa0, type: 3}
   m_Name: 
@@ -2036,16 +2037,16 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: fe87c0e1cc204ed48ad3b37840f39efc, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  m_Material: {fileID: 2100000, guid: d6e192b5359c267428b5fe9a29ea1010, type: 2}
-  m_Color: {r: 0.08, g: 0.1, b: 0.13, a: 0.94}
+  m_Material: {fileID: 0}
+  m_Color: {r: 0.07, g: 0.078, b: 0.09, a: 0.95}
   m_RaycastTarget: 1
   m_RaycastPadding: {x: 0, y: 0, z: 0, w: 0}
   m_Maskable: 1
   m_OnCullStateChanged:
     m_PersistentCalls:
       m_Calls: []
-  m_Sprite: {fileID: 0}
-  m_Type: 0
+  m_Sprite: {fileID: 21300000, guid: c572182561fdd1a4284b7bd721e6566a, type: 3}
+  m_Type: 1
   m_PreserveAspect: 0
   m_FillCenter: 1
   m_FillMethod: 4
@@ -2053,7 +2054,7 @@ MonoBehaviour:
   m_FillClockwise: 1
   m_FillOrigin: 0
   m_UseSpriteMesh: 0
-  m_PixelsPerUnitMultiplier: 1
+  m_PixelsPerUnitMultiplier: 1.5384616
 --- !u!222 &87670090
 CanvasRenderer:
   m_ObjectHideFlags: 0
@@ -2062,6 +2063,21 @@ CanvasRenderer:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 87670083}
   m_CullTransparentMesh: 1
+--- !u!114 &87670091
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 87670083}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: e19747de3f5aca642ab2be37e372fb86, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: UnityEngine.UI::UnityEngine.UI.Outline
+  m_EffectColor: {r: 0.2, g: 0.22, b: 0.25, a: 1}
+  m_EffectDistance: {x: 1.5, y: -1.5}
+  m_UseGraphicAlpha: 0
 --- !u!1 &91334392
 GameObject:
   m_ObjectHideFlags: 0
@@ -7514,8 +7530,8 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::MenuStateLabel
   kind: 0
-  tint: {r: 0.36, g: 0.25, b: 0.05, a: 1}
-  activeTint: {r: 0.85, g: 0.52, b: 0.08, a: 1}
+  tint: {r: 0.118, g: 0.13, b: 0.15, a: 1}
+  activeTint: {r: 0.09, g: 0.27, b: 0.25, a: 1}
 --- !u!95 &369827011
 Animator:
   serializedVersion: 7
@@ -9832,6 +9848,7 @@ GameObject:
   - component: {fileID: 523778356}
   - component: {fileID: 523778355}
   - component: {fileID: 523778354}
+  - component: {fileID: 523778357}
   m_Layer: 0
   m_Name: PhaseCard
   m_TagString: Untagged
@@ -9888,9 +9905,9 @@ MonoBehaviour:
   stepLabel: {fileID: 1430421848}
   restartRoot: {fileID: 614400290}
   restartFill: {fileID: 37444260}
-  doneColor: {r: 0.18, g: 0.62, b: 0.56, a: 1}
-  currentColor: {r: 0.45, g: 0.95, b: 0.88, a: 1}
-  todoColor: {r: 0.17, g: 0.2, b: 0.25, a: 1}
+  doneColor: {r: 0.12, g: 0.48, b: 0.44, a: 1}
+  currentColor: {r: 0.17, g: 0.77, b: 0.71, a: 1}
+  todoColor: {r: 0.16, g: 0.175, b: 0.195, a: 1}
   fadeSpeed: 8
 --- !u!114 &523778355
 MonoBehaviour:
@@ -9905,7 +9922,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: UnityEngine.UI::UnityEngine.UI.Image
   m_Material: {fileID: 0}
-  m_Color: {r: 0.08, g: 0.1, b: 0.13, a: 0.94}
+  m_Color: {r: 0.07, g: 0.078, b: 0.09, a: 0.95}
   m_RaycastTarget: 0
   m_RaycastPadding: {x: 0, y: 0, z: 0, w: 0}
   m_Maskable: 1
@@ -9930,6 +9947,21 @@ CanvasRenderer:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 523778352}
   m_CullTransparentMesh: 1
+--- !u!114 &523778357
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 523778352}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: e19747de3f5aca642ab2be37e372fb86, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: UnityEngine.UI::UnityEngine.UI.Outline
+  m_EffectColor: {r: 0.2, g: 0.22, b: 0.25, a: 1}
+  m_EffectDistance: {x: 1.5, y: -1.5}
+  m_UseGraphicAlpha: 0
 --- !u!1 &525548494
 GameObject:
   m_ObjectHideFlags: 0
@@ -10246,7 +10278,7 @@ MonoBehaviour:
   m_OnCullStateChanged:
     m_PersistentCalls:
       m_Calls: []
-  m_text: Which densities of the scan are shown
+  m_text: Shows tissue between these densities
   m_isRightToLeft: 0
   m_fontAsset: {fileID: 11400000, guid: eb44739c484b1b54bbc1a0d4d9dd1a50, type: 2}
   m_sharedMaterial: {fileID: -5839354330806206608, guid: eb44739c484b1b54bbc1a0d4d9dd1a50, type: 2}
@@ -10255,8 +10287,8 @@ MonoBehaviour:
   m_fontMaterials: []
   m_fontColor32:
     serializedVersion: 2
-    rgba: 4289107596
-  m_fontColor: {r: 0.55, g: 0.59, b: 0.65, a: 1}
+    rgba: 4289241497
+  m_fontColor: {r: 0.6, g: 0.63, b: 0.66, a: 1}
   m_enableVertexGradient: 0
   m_colorMode: 3
   m_fontColorGradient:
@@ -11065,8 +11097,8 @@ MonoBehaviour:
   m_faceColor:
     serializedVersion: 2
     rgba: 4294967295
-  m_fontSize: 24
-  m_fontSizeBase: 24
+  m_fontSize: 20
+  m_fontSizeBase: 20
   m_fontWeight: 400
   m_enableAutoSizing: 0
   m_fontSizeMin: 18
@@ -11277,7 +11309,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: UnityEngine.UI::UnityEngine.UI.Image
   m_Material: {fileID: 0}
-  m_Color: {r: 0.13, g: 0.16, b: 0.2, a: 1}
+  m_Color: {r: 0.118, g: 0.13, b: 0.15, a: 1}
   m_RaycastTarget: 0
   m_RaycastPadding: {x: 0, y: 0, z: 0, w: 0}
   m_Maskable: 1
@@ -11648,7 +11680,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: UnityEngine.UI::UnityEngine.UI.Image
   m_Material: {fileID: 0}
-  m_Color: {r: 0.13, g: 0.16, b: 0.2, a: 1}
+  m_Color: {r: 0.118, g: 0.13, b: 0.15, a: 1}
   m_RaycastTarget: 0
   m_RaycastPadding: {x: 0, y: 0, z: 0, w: 0}
   m_Maskable: 1
@@ -14797,6 +14829,21 @@ RectTransform:
   m_CorrespondingSourceObject: {fileID: 6819193313518456874, guid: d20e5167c9cb0324ca767fde91f2f10f, type: 3}
   m_PrefabInstance: {fileID: 1418674821}
   m_PrefabAsset: {fileID: 0}
+--- !u!114 &828333739
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 794122518}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: e19747de3f5aca642ab2be37e372fb86, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: UnityEngine.UI::UnityEngine.UI.Outline
+  m_EffectColor: {r: 0.2, g: 0.22, b: 0.25, a: 1}
+  m_EffectDistance: {x: 1.5, y: -1.5}
+  m_UseGraphicAlpha: 0
 --- !u!1 &828628506
 GameObject:
   m_ObjectHideFlags: 0
@@ -15098,8 +15145,8 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: f612c3541873b3a4788d2599222f58df, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::MenuTileStyle
-  tile: {r: 0.15, g: 0.18, b: 0.23, a: 1}
-  selectedIcon: {r: 0.18, g: 0.83, b: 0.75, a: 1}
+  tile: {r: 0.118, g: 0.13, b: 0.15, a: 1}
+  selectedIcon: {r: 0.17, g: 0.77, b: 0.71, a: 1}
 --- !u!1 &839584784
 GameObject:
   m_ObjectHideFlags: 0
@@ -15331,7 +15378,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: UnityEngine.UI::UnityEngine.UI.Image
   m_Material: {fileID: 0}
-  m_Color: {r: 0.13, g: 0.16, b: 0.2, a: 1}
+  m_Color: {r: 0.118, g: 0.13, b: 0.15, a: 1}
   m_RaycastTarget: 0
   m_RaycastPadding: {x: 0, y: 0, z: 0, w: 0}
   m_Maskable: 1
@@ -16744,7 +16791,7 @@ MonoBehaviour:
   m_fontMaterials: []
   m_fontColor32:
     serializedVersion: 2
-    rgba: 4294967295
+    rgba: 4294439147
   m_fontColor: {r: 0.92, g: 0.94, b: 0.97, a: 1}
   m_enableVertexGradient: 0
   m_colorMode: 3
@@ -16757,12 +16804,12 @@ MonoBehaviour:
   m_spriteAsset: {fileID: 0}
   m_tintAllSprites: 0
   m_StyleSheet: {fileID: 0}
-  m_TextStyleHashCode: 0
+  m_TextStyleHashCode: -1183493901
   m_overrideHtmlColors: 0
   m_faceColor:
     serializedVersion: 2
     rgba: 4294967295
-  m_fontSize: 17
+  m_fontSize: 18
   m_fontSizeBase: 17
   m_fontWeight: 400
   m_enableAutoSizing: 1
@@ -16785,13 +16832,13 @@ MonoBehaviour:
   m_linkedTextComponent: {fileID: 0}
   parentLinkedComponent: {fileID: 0}
   m_enableKerning: 0
-  m_ActiveFontFeatures: 00000000
+  m_ActiveFontFeatures: 
   m_enableExtraPadding: 0
   checkPaddingRequired: 0
   m_isRichText: 1
   m_EmojiFallbackSupport: 1
   m_parseCtrlCharacters: 1
-  m_isOrthographic: 0
+  m_isOrthographic: 1
   m_isCullingEnabled: 0
   m_horizontalMapping: 0
   m_verticalMapping: 0
@@ -18189,7 +18236,7 @@ MonoBehaviour:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1009878221}
-  m_Enabled: 1
+  m_Enabled: 0
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: fe87c0e1cc204ed48ad3b37840f39efc, type: 3}
   m_Name: 
@@ -23242,7 +23289,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: UnityEngine.UI::UnityEngine.UI.Image
   m_Material: {fileID: 0}
-  m_Color: {r: 0, g: 0.1981132, b: 0.090051465, a: 1}
+  m_Color: {r: 0.09, g: 0.27, b: 0.25, a: 1}
   m_RaycastTarget: 1
   m_RaycastPadding: {x: 0, y: 0, z: 0, w: 0}
   m_Maskable: 1
@@ -23506,7 +23553,7 @@ MonoBehaviour:
   m_OnCullStateChanged:
     m_PersistentCalls:
       m_Calls: []
-  m_text: Scan brightness
+  m_text: Density threshold
   m_isRightToLeft: 0
   m_fontAsset: {fileID: 11400000, guid: 5302535af1044152a457ed104f1f4b91, type: 2}
   m_sharedMaterial: {fileID: 2164040, guid: 5302535af1044152a457ed104f1f4b91, type: 2}
@@ -24184,6 +24231,7 @@ GameObject:
   - component: {fileID: 1333047833}
   - component: {fileID: 1333047832}
   - component: {fileID: 1333047835}
+  - component: {fileID: 1333047836}
   m_Layer: 3
   m_Name: ResultsPanel
   m_TagString: Untagged
@@ -24246,7 +24294,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: UnityEngine.UI::UnityEngine.UI.Image
   m_Material: {fileID: 0}
-  m_Color: {r: 0.08, g: 0.1, b: 0.13, a: 0.96}
+  m_Color: {r: 0.07, g: 0.078, b: 0.09, a: 0.95}
   m_RaycastTarget: 1
   m_RaycastPadding: {x: 0, y: 0, z: 0, w: 0}
   m_Maskable: 1
@@ -24291,6 +24339,21 @@ MonoBehaviour:
   guidewireSimulator: {fileID: 1269141805}
   clotTarget: {fileID: 300974650}
   phaseCard: {fileID: 523778352}
+--- !u!114 &1333047836
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1333047830}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: e19747de3f5aca642ab2be37e372fb86, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: UnityEngine.UI::UnityEngine.UI.Outline
+  m_EffectColor: {r: 0.2, g: 0.22, b: 0.25, a: 1}
+  m_EffectDistance: {x: 1.5, y: -1.5}
+  m_UseGraphicAlpha: 0
 --- !u!1 &1333250163
 GameObject:
   m_ObjectHideFlags: 0
@@ -24514,7 +24577,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 4679888830461995030, guid: 26f4ebef46557d443aa5faf2a32711c2, type: 3}
       propertyPath: m_SizeDelta.x
-      value: -52
+      value: -64
       objectReference: {fileID: 0}
     - target: {fileID: 4679888830461995030, guid: 26f4ebef46557d443aa5faf2a32711c2, type: 3}
       propertyPath: m_AnchoredPosition.x
@@ -24646,7 +24709,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 5611591692397373452, guid: 26f4ebef46557d443aa5faf2a32711c2, type: 3}
       propertyPath: m_SizeDelta.x
-      value: 52
+      value: 64
       objectReference: {fileID: 0}
     - target: {fileID: 5611591692397373452, guid: 26f4ebef46557d443aa5faf2a32711c2, type: 3}
       propertyPath: m_AnchoredPosition.x
@@ -24714,7 +24777,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 6745091916649649725, guid: 26f4ebef46557d443aa5faf2a32711c2, type: 3}
       propertyPath: m_SizeDelta.x
-      value: -52
+      value: -64
       objectReference: {fileID: 0}
     - target: {fileID: 6745091916649649725, guid: 26f4ebef46557d443aa5faf2a32711c2, type: 3}
       propertyPath: m_AnchoredPosition.x
@@ -25343,8 +25406,8 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: f612c3541873b3a4788d2599222f58df, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::MenuTileStyle
-  tile: {r: 0.15, g: 0.18, b: 0.23, a: 1}
-  selectedIcon: {r: 0.18, g: 0.83, b: 0.75, a: 1}
+  tile: {r: 0.118, g: 0.13, b: 0.15, a: 1}
+  selectedIcon: {r: 0.17, g: 0.77, b: 0.71, a: 1}
 --- !u!1 &1374149687
 GameObject:
   m_ObjectHideFlags: 0
@@ -25747,8 +25810,8 @@ MonoBehaviour:
   high: {fileID: 694256121}
   lowValue: {fileID: 1836413823}
   highValue: {fileID: 1064006850}
-  track: {r: 0.15, g: 0.18, b: 0.23, a: 1}
-  fill: {r: 0.18, g: 0.83, b: 0.75, a: 1}
+  track: {r: 0.16, g: 0.175, b: 0.195, a: 1}
+  fill: {r: 0.17, g: 0.77, b: 0.71, a: 1}
   handle: {r: 1, g: 1, b: 1, a: 1}
 --- !u!1 &1393655919
 GameObject:
@@ -27074,20 +27137,40 @@ PrefabInstance:
       value: -190.7
       objectReference: {fileID: 0}
     - target: {fileID: 6819193313518456877, guid: d20e5167c9cb0324ca767fde91f2f10f, type: 3}
+      propertyPath: m_Type
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 6819193313518456877, guid: d20e5167c9cb0324ca767fde91f2f10f, type: 3}
+      propertyPath: m_Sprite
+      value: 
+      objectReference: {fileID: 21300000, guid: c572182561fdd1a4284b7bd721e6566a, type: 3}
+    - target: {fileID: 6819193313518456877, guid: d20e5167c9cb0324ca767fde91f2f10f, type: 3}
       propertyPath: m_Color.a
-      value: 0.94
+      value: 0.95
       objectReference: {fileID: 0}
     - target: {fileID: 6819193313518456877, guid: d20e5167c9cb0324ca767fde91f2f10f, type: 3}
       propertyPath: m_Color.b
-      value: 0.13
+      value: 0.09
       objectReference: {fileID: 0}
     - target: {fileID: 6819193313518456877, guid: d20e5167c9cb0324ca767fde91f2f10f, type: 3}
       propertyPath: m_Color.g
-      value: 0.1
+      value: 0.078
       objectReference: {fileID: 0}
     - target: {fileID: 6819193313518456877, guid: d20e5167c9cb0324ca767fde91f2f10f, type: 3}
       propertyPath: m_Color.r
-      value: 0.08
+      value: 0.07
+      objectReference: {fileID: 0}
+    - target: {fileID: 6819193313518456877, guid: d20e5167c9cb0324ca767fde91f2f10f, type: 3}
+      propertyPath: m_Material
+      value: 
+      objectReference: {fileID: 0}
+    - target: {fileID: 6819193313518456877, guid: d20e5167c9cb0324ca767fde91f2f10f, type: 3}
+      propertyPath: m_PixelsPerUnitMultiplier
+      value: 1.5384616
+      objectReference: {fileID: 0}
+    - target: {fileID: 6819193313518456878, guid: d20e5167c9cb0324ca767fde91f2f10f, type: 3}
+      propertyPath: m_Enabled
+      value: 0
       objectReference: {fileID: 0}
     - target: {fileID: 6819193313518456878, guid: d20e5167c9cb0324ca767fde91f2f10f, type: 3}
       propertyPath: borderRadius.w
@@ -27390,6 +27473,9 @@ PrefabInstance:
     - targetCorrespondingSourceObject: {fileID: 6819193312115910601, guid: d20e5167c9cb0324ca767fde91f2f10f, type: 3}
       insertIndex: -1
       addedObject: {fileID: 281695620}
+    - targetCorrespondingSourceObject: {fileID: 6819193313518456875, guid: d20e5167c9cb0324ca767fde91f2f10f, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 828333739}
     - targetCorrespondingSourceObject: {fileID: 4735999131822250741, guid: d20e5167c9cb0324ca767fde91f2f10f, type: 3}
       insertIndex: -1
       addedObject: {fileID: 1870543098}
@@ -29348,8 +29434,8 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::MenuStateLabel
   kind: 1
-  tint: {r: 0.36, g: 0.25, b: 0.05, a: 1}
-  activeTint: {r: 0.85, g: 0.52, b: 0.08, a: 1}
+  tint: {r: 0.118, g: 0.13, b: 0.15, a: 1}
+  activeTint: {r: 0.09, g: 0.27, b: 0.25, a: 1}
 --- !u!95 &1555607662
 Animator:
   serializedVersion: 7
@@ -29509,8 +29595,8 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: f612c3541873b3a4788d2599222f58df, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::MenuTileStyle
-  tile: {r: 0.15, g: 0.18, b: 0.23, a: 1}
-  selectedIcon: {r: 0.18, g: 0.83, b: 0.75, a: 1}
+  tile: {r: 0.118, g: 0.13, b: 0.15, a: 1}
+  selectedIcon: {r: 0.17, g: 0.77, b: 0.71, a: 1}
 --- !u!1 &1563925073
 GameObject:
   m_ObjectHideFlags: 0
@@ -30320,7 +30406,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: UnityEngine.UI::UnityEngine.UI.Image
   m_Material: {fileID: 0}
-  m_Color: {r: 0.13, g: 0.16, b: 0.2, a: 1}
+  m_Color: {r: 0.118, g: 0.13, b: 0.15, a: 1}
   m_RaycastTarget: 0
   m_RaycastPadding: {x: 0, y: 0, z: 0, w: 0}
   m_Maskable: 1
@@ -33009,8 +33095,8 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::MenuStateLabel
   kind: 2
-  tint: {r: 0.36, g: 0.25, b: 0.05, a: 1}
-  activeTint: {r: 0.85, g: 0.52, b: 0.08, a: 1}
+  tint: {r: 0.118, g: 0.13, b: 0.15, a: 1}
+  activeTint: {r: 0.09, g: 0.27, b: 0.25, a: 1}
 --- !u!1 &1736812261
 GameObject:
   m_ObjectHideFlags: 0
@@ -33530,8 +33616,8 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: f612c3541873b3a4788d2599222f58df, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::MenuTileStyle
-  tile: {r: 0.15, g: 0.18, b: 0.23, a: 1}
-  selectedIcon: {r: 0.18, g: 0.83, b: 0.75, a: 1}
+  tile: {r: 0.118, g: 0.13, b: 0.15, a: 1}
+  selectedIcon: {r: 0.17, g: 0.77, b: 0.71, a: 1}
 --- !u!1 &1745967330
 GameObject:
   m_ObjectHideFlags: 0
@@ -33804,6 +33890,7 @@ GameObject:
   - component: {fileID: 1747354946}
   - component: {fileID: 1747354945}
   - component: {fileID: 1747354943}
+  - component: {fileID: 1747354948}
   m_Layer: 3
   m_Name: StartCard
   m_TagString: Untagged
@@ -33878,7 +33965,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: UnityEngine.UI::UnityEngine.UI.Image
   m_Material: {fileID: 0}
-  m_Color: {r: 0.08, g: 0.1, b: 0.13, a: 0.96}
+  m_Color: {r: 0.07, g: 0.078, b: 0.09, a: 0.95}
   m_RaycastTarget: 1
   m_RaycastPadding: {x: 0, y: 0, z: 0, w: 0}
   m_Maskable: 1
@@ -33903,6 +33990,21 @@ CanvasRenderer:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1747354942}
   m_CullTransparentMesh: 1
+--- !u!114 &1747354948
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1747354942}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: e19747de3f5aca642ab2be37e372fb86, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: UnityEngine.UI::UnityEngine.UI.Outline
+  m_EffectColor: {r: 0.2, g: 0.22, b: 0.25, a: 1}
+  m_EffectDistance: {x: 1.5, y: -1.5}
+  m_UseGraphicAlpha: 0
 --- !u!1 &1752039273
 GameObject:
   m_ObjectHideFlags: 0
@@ -35640,8 +35742,8 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: f612c3541873b3a4788d2599222f58df, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::MenuTileStyle
-  tile: {r: 0.15, g: 0.18, b: 0.23, a: 1}
-  selectedIcon: {r: 0.18, g: 0.83, b: 0.75, a: 1}
+  tile: {r: 0.118, g: 0.13, b: 0.15, a: 1}
+  selectedIcon: {r: 0.17, g: 0.77, b: 0.71, a: 1}
 --- !u!1 &1874831901
 GameObject:
   m_ObjectHideFlags: 0
@@ -36812,7 +36914,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 4679888830461995030, guid: 26f4ebef46557d443aa5faf2a32711c2, type: 3}
       propertyPath: m_SizeDelta.x
-      value: -52
+      value: -64
       objectReference: {fileID: 0}
     - target: {fileID: 4679888830461995030, guid: 26f4ebef46557d443aa5faf2a32711c2, type: 3}
       propertyPath: m_AnchoredPosition.x
@@ -36940,7 +37042,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 5611591692397373452, guid: 26f4ebef46557d443aa5faf2a32711c2, type: 3}
       propertyPath: m_SizeDelta.x
-      value: 52
+      value: 64
       objectReference: {fileID: 0}
     - target: {fileID: 5611591692397373452, guid: 26f4ebef46557d443aa5faf2a32711c2, type: 3}
       propertyPath: m_AnchoredPosition.x
@@ -36996,7 +37098,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 6745091916649649725, guid: 26f4ebef46557d443aa5faf2a32711c2, type: 3}
       propertyPath: m_SizeDelta.x
-      value: -52
+      value: -64
       objectReference: {fileID: 0}
     - target: {fileID: 6745091916649649725, guid: 26f4ebef46557d443aa5faf2a32711c2, type: 3}
       propertyPath: m_AnchoredPosition.x
@@ -37987,8 +38089,8 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: f612c3541873b3a4788d2599222f58df, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::MenuTileStyle
-  tile: {r: 0.15, g: 0.18, b: 0.23, a: 1}
-  selectedIcon: {r: 0.18, g: 0.83, b: 0.75, a: 1}
+  tile: {r: 0.118, g: 0.13, b: 0.15, a: 1}
+  selectedIcon: {r: 0.17, g: 0.77, b: 0.71, a: 1}
 --- !u!1 &1983869827
 GameObject:
   m_ObjectHideFlags: 0

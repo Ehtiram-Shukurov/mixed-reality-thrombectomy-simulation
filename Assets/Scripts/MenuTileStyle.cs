@@ -6,8 +6,8 @@ using TMPro;
 // (it makes the gray lighter or darker); this keeps that change but applies it to our colors.
 public class MenuTileStyle : MonoBehaviour
 {
-    public Color tile = new Color(0.15f, 0.18f, 0.23f, 1f);
-    public Color selectedIcon = new Color(0.18f, 0.83f, 0.75f, 1f);
+    public Color tile = new Color(0.118f, 0.13f, 0.15f, 1f);
+    public Color selectedIcon = new Color(0.17f, 0.77f, 0.71f, 1f);
 
     // Gray the button prefab uses when idle.
     private const float AnimatorIdle = 0.294f;

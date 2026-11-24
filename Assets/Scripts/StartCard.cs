@@ -25,7 +25,7 @@ public class StartCard : MonoBehaviour
     private float _shownAt;
     private CanvasGroup _group;
 
-    private const string Grey = "#8B96A5";
+    private const string Grey = "#9AA1A9";
 
     public void Show(bool firstTime)
     {
@@ -95,23 +95,22 @@ public class StartCard : MonoBehaviour
                      + "You do these steps in a real CT scan of the chest and belly, so the clot is in a body "
                      + "artery, not the brain.\n\n"
                      + $"<color={Grey}>Simplified training, not a medical device.</color>";
-                foot = "A  next";
+                foot = Footer("continue");
                 break;
 
             case Page.Controls:
                 head = "Controls";
-                text = $"<color={Grey}>Right controller</color>\n"
-                     + Row("Stick up / down", "push / pull")
-                     + Row("Stick left / right", "turn at a fork")
-                     + Row("B", "inject dye")
-                     + Row("Hold A", "X-ray")
-                     + Row("Tap stick", "turn C-arm")
-                     + Row("Hold stick", "restart")
-                     + $"\n<color={Grey}>Hands</color>\n"
-                     + Row("Pinch", "grab model")
-                     + Row("Poke", "menu buttons")
-                     + Row("Left palm pinch", "hide menu");
-                foot = "A  next";
+                // The five you use all the time, then the rest in one quiet line.
+                text = "<line-height=150%>"
+                     + Row("Push / pull", "stick up/down")
+                     + Row("Turn at a fork", "stick left/right")
+                     + Row("Inject dye", "B")
+                     + Row("X-ray", "hold A")
+                     + Row("Restart", "hold stick")
+                     + "</line-height>\n"
+                     + $"<size=85%><color={Grey}>Pinch to grab the model and poke the menu. "
+                     + "Left palm pinch hides the menu. Tap the stick to turn the C-arm.</color></size>";
+                foot = Footer("continue");
                 break;
 
             default:
@@ -132,7 +131,7 @@ public class StartCard : MonoBehaviour
                 text = $"{forks} fork{(forks == 1 ? "" : "s")} on the way to the clot. {twist}\n\n"
                      + "Find the clot with dye, cross it with the wire, open the stent and pull the clot out slowly.\n\n"
                      + $"<color={Grey}>{mode}</color>" + tut;
-                foot = "A  start";
+                foot = Footer("start");
                 break;
         }
 
@@ -141,7 +140,11 @@ public class StartCard : MonoBehaviour
         if (footer != null && footer.text != foot) footer.text = foot;
     }
 
-    private static string Row(string key, string what) => $"<b>{key}</b><pos=56%>{what}\n";
+    private static string Row(string action, string key) => $"{action}<pos=50%><color={Grey}>{key}</color>\n";
+
+    // A hint, not a button: the card is moved on with the A button on the controller.
+    private static string Footer(string what) => $"<color={Grey}>Press</color> <color={Teal}><b>A</b></color> <color={Grey}>to {what}</color>";
+    private const string Teal = "#2BC4B4";
 
     void OnDisable()
     {

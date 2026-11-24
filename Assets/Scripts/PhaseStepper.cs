@@ -14,9 +14,9 @@ public class PhaseStepper : MonoBehaviour
     public GameObject restartRoot;
     public Image restartFill;
 
-    public Color doneColor = new Color(0.18f, 0.62f, 0.56f, 1f);
-    public Color currentColor = new Color(0.45f, 0.95f, 0.88f, 1f);
-    public Color todoColor = new Color(0.17f, 0.20f, 0.25f, 1f);
+    public Color doneColor = new Color(0.12f, 0.48f, 0.44f, 1f);
+    public Color currentColor = new Color(0.17f, 0.77f, 0.71f, 1f);
+    public Color todoColor = new Color(0.16f, 0.175f, 0.195f, 1f);
     public float fadeSpeed = 8f;
 
     private int _lastStep = -1;
