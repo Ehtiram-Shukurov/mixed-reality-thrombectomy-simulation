@@ -258,7 +258,7 @@ public class ClotTarget : MonoBehaviour
 
         bool dyeShowing = fluoroController != null && fluoroController.IsActive && fluoroController.ContrastActive;
         if (dyeShowing) IsRoadmapped = true;
-        UpdateMarker(keepRoadmapMarker && IsRoadmapped && !dyeShowing && !IsReached);
+        UpdateMarker(keepRoadmapMarker && SimMode.HintsOn && IsRoadmapped && !dyeShowing && !IsReached);
     }
 
     private void UpdateMarker(bool show)

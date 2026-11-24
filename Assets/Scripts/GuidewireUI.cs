@@ -105,7 +105,8 @@ public class GuidewireUI : MonoBehaviour
 
         bool atFork = guidewireSimulator.IsReady && guidewireSimulator.IsAtFork;
         bool deadEnd = guidewireSimulator.IsReady && guidewireSimulator.IsAtDeadEnd;
-        bool bend = guidewireSimulator.IsReady && guidewireSimulator.enabled && guidewireSimulator.BendAmount > 0.3f;
+        // The bend text is a hint; in Assessment mode only the haptic push-back is left.
+        bool bend = SimMode.HintsOn && guidewireSimulator.IsReady && guidewireSimulator.enabled && guidewireSimulator.BendAmount > 0.3f;
         bool show = atFork || deadEnd || bend;
         forkText.gameObject.SetActive(show);
         if (forkBadge != null) forkBadge.gameObject.SetActive(show);
@@ -129,6 +130,16 @@ public class GuidewireUI : MonoBehaviour
 
         int dir = guidewireSimulator.TwistDirection;
         bool hasBadge = forkBadge != null;
+
+        // Assessment mode: say there is a fork, nothing about which way to turn.
+        if (!SimMode.HintsOn)
+        {
+            forkText.color = hasBadge ? Dark : Color.yellow;
+            if (hasBadge) forkBadge.color = Amber;
+            forkText.text = "<size=70%>FORK REACHED</size>\nChoose a branch";
+            return;
+        }
+
         if (dir == 0)
         {
             forkText.color = hasBadge ? Dark : Color.green;

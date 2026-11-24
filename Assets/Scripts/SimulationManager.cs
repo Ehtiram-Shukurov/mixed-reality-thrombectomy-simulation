@@ -165,6 +165,14 @@ public class SimulationManager : MonoBehaviour
         EnterPhase(SimPhase.Phase1_Navigation);
     }
 
+    // Hooked to the Assessment toggle on the menu (On Value Changed, dynamic bool).
+    // Takes effect right away; the run log records the mode at the end of the run.
+    public void SetAssessmentMode(bool on)
+    {
+        SimMode.Assessment = on;
+        Debug.Log("[SimManager] " + (on ? "Assessment mode: hints off." : "Training mode: hints on."));
+    }
+
     // Frame of the last phase change, so a button press that changed the phase is not reused.
     public int PhaseChangedFrame { get; private set; } = -1;
 
@@ -355,6 +363,7 @@ public class SimulationManager : MonoBehaviour
                 + "\"forcedBends\":" + _forcedBends + ","
                 + "\"contrastRuns\":" + (fluoroController != null ? fluoroController.ContrastRuns : 0) + ","
                 + "\"speedWarnings\":" + _speedWarnings + ","
+                + "\"mode\":\"" + (SimMode.Assessment ? "assessment" : "training") + "\","
                 + "\"case\":\"" + (clotTarget != null ? clotTarget.caseLevel.ToString() : "") + "\","
                 + "\"forksOnPath\":" + (clotTarget != null ? clotTarget.ForksOnPath : 0) + ","
                 + "\"passes\":" + _passes + ","

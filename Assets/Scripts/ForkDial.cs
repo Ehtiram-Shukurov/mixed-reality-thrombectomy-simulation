@@ -41,7 +41,7 @@ public class ForkDial : MonoBehaviour
     {
         if (guidewire == null || group == null) return;
 
-        bool show = guidewire.IsReady && guidewire.IsAtFork;
+        bool show = guidewire.IsReady && guidewire.IsAtFork && SimMode.HintsOn;
         group.alpha = Mathf.MoveTowards(group.alpha, show ? 1f : 0f, Time.unscaledDeltaTime * fadeSpeed);
         if (group.alpha <= 0.01f) return;
 

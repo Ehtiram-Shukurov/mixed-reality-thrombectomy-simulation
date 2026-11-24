@@ -52,7 +52,8 @@ public class ForkMarker : MonoBehaviour
     {
         if (_quad == null || _wire == null || _sim == null) return;
 
-        bool show = _wire.IsReady && _sim.CurrentPhase == SimulationManager.SimPhase.Phase1_Navigation && !_wire.IsAtFork;
+        bool show = _wire.IsReady && _sim.CurrentPhase == SimulationManager.SimPhase.Phase1_Navigation && !_wire.IsAtFork
+                    && SimMode.HintsOn;
 
         if (_wire.CurrentNode != _lastNode)
         {
