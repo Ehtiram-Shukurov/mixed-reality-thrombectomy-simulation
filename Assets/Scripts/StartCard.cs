@@ -23,6 +23,7 @@ public class StartCard : MonoBehaviour
     private Page _page;
     private int _shownFrame;
     private float _shownAt;
+    private CanvasGroup _group;
 
     private const string Grey = "#8B96A5";
 
@@ -44,9 +45,13 @@ public class StartCard : MonoBehaviour
 
     void Update()
     {
-        // Small pop-in, like the results panel.
+        // Small pop and fade in, like the results panel.
         float t = Mathf.Clamp01((Time.unscaledTime - _shownAt) / 0.25f);
-        transform.localScale = Vector3.one * Mathf.Lerp(0.9f, 1f, Mathf.SmoothStep(0f, 1f, t));
+        float s = Mathf.SmoothStep(0f, 1f, t);
+        transform.localScale = Vector3.one * Mathf.Lerp(0.9f, 1f, s);
+        if (_group == null) _group = GetComponent<CanvasGroup>();
+        if (_group == null) _group = gameObject.AddComponent<CanvasGroup>();
+        _group.alpha = s;
 
         // The press that opened the card does not also move it on.
         if (Time.frameCount <= _shownFrame + 1) return;

@@ -27,10 +27,15 @@ public class ResultsPanel : MonoBehaviour
 
     void Update()
     {
-        // Small pop-in.
+        // Small pop and fade in.
         float t = Mathf.Clamp01((Time.unscaledTime - _shownAt) / 0.25f);
-        transform.localScale = Vector3.one * Mathf.Lerp(0.9f, 1f, Mathf.SmoothStep(0f, 1f, t));
+        float s = Mathf.SmoothStep(0f, 1f, t);
+        transform.localScale = Vector3.one * Mathf.Lerp(0.9f, 1f, s);
+        if (_group == null) _group = GetComponent<CanvasGroup>();
+        if (_group == null) _group = gameObject.AddComponent<CanvasGroup>();
+        _group.alpha = s;
     }
+    private CanvasGroup _group;
 
     // Hooked to the Play Again toggle (On Value Changed, dynamic bool)
     public void OnPlayAgainToggle(bool isOn)
