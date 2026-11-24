@@ -88,6 +88,10 @@ Shader "Custom/DICOM_Volume_MIP_VR_Stable"
             half _Threshold;
             half _UpperThreshold;
             half _Contrast;
+            // Dye map set by DyeFlow as globals (deliberately not in Properties).
+            // Each cell holds the distance along the vessels from the heart end; 10000 = no flow.
+            sampler3D _VolDyeTex;
+            float _VolDyeOn, _VolDyeFront, _VolDyeFeather, _VolDyePlain;
             half _DepthFade;
             half _Shading;
             half _Jitter;
@@ -256,7 +260,16 @@ Shader "Custom/DICOM_Volume_MIP_VR_Stable"
 
                             if (label >= 22 && label <= 29) {
                                 // Dye in the vessels. With no contrast they barely show, as on a plain X-ray.
-                                densityToAdd = _Contrast;
+                                // During a dye run, a vessel lights up only once the front has reached it,
+                                // so the dye stops at the clot here too.
+                                float c = _Contrast;
+                                if (_VolDyeOn > 0.5)
+                                {
+                                    float dd = tex3Dlod(_VolDyeTex, float4(uv, 0)).r;
+                                    float reach = saturate((_VolDyeFront - dd) / max(_VolDyeFeather, 1e-4));
+                                    c = lerp(_VolDyePlain, _Contrast, reach);
+                                }
+                                densityToAdd = c;
                             } 
                             else if (rawDensity >= 0.73 && rawDensity <= 1.0) {
                                 densityToAdd = rawDensity *0.1;

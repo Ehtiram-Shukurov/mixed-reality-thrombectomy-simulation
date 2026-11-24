@@ -260,7 +260,7 @@ public class XRayMonitor : MonoBehaviour
     {
         bool dye = fluoro != null && fluoro.ContrastActive;
         if (!dye) _capturedThisRun = false;
-        else if (!_capturedThisRun && fluoro.ContrastElapsed >= roadmapCaptureAt)
+        else if (!_capturedThisRun && DyeFilled())
         {
             Graphics.Blit(_rt, _roadmapRT);
             _hasRoadmap = true;
@@ -272,6 +272,16 @@ public class XRayMonitor : MonoBehaviour
         _screenMat.SetTexture("_Roadmap", _roadmapRT);
         _screenMat.SetFloat("_RoadmapOn", RoadmapShowing ? 1f : 0f);
     }
+
+    // Capture once the dye has reached every open vessel, so the roadmap is complete.
+    // The frame in the texture is from one frame earlier, which still shows the full fill.
+    private bool DyeFilled()
+    {
+        if (_dyeFlow == null) _dyeFlow = FindFirstObjectByType<DyeFlow>();
+        if (_dyeFlow != null) return _dyeFlow.FillComplete;
+        return fluoro.ContrastElapsed >= roadmapCaptureAt;
+    }
+    private DyeFlow _dyeFlow;
 
     // A new case starts without a roadmap.
     public void ClearRoadmap()
