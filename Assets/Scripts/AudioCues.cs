@@ -3,14 +3,22 @@ using UnityEngine;
 // Short sound cues, generated in code (the project has no audio files).
 public class AudioCues : MonoBehaviour
 {
-    public enum Cue { Tick, Fork, DeadEnd, Clot, Warning, Stent, Success, Phase }
+    public enum Cue { Tick, Fork, DeadEnd, Clot, Warning, Stent, Success, Phase, Injection, Click }
 
     public static AudioCues Instance { get; private set; }
 
     [Range(0f, 1f)] public float volume = 0.5f;
 
+    [Header("Room")]
+    [Tooltip("A quiet monitor beep in the background, like a pulse monitor in a cath lab.")]
+    public bool ambientBeep = true;
+    [Range(0f, 1f)] public float ambientVolume = 0.08f;
+    [Tooltip("Beats per minute of the background beep.")]
+    public float beatsPerMinute = 72f;
+
     private const int SampleRate = 24000;
     private AudioSource _source;
+    private AudioSource _ambient;
     private AudioClip[] _clips;
 
     void Awake()
@@ -22,7 +30,17 @@ public class AudioCues : MonoBehaviour
         _source.playOnAwake = false;
         _source.spatialBlend = 0f;
 
-        _clips = new AudioClip[8];
+        _clips = new AudioClip[System.Enum.GetValues(typeof(Cue)).Length];
+        _clips[(int)Cue.Injection] = MakeWhoosh("injection", 0.9f, 0.35f);
+        _clips[(int)Cue.Click] = MakeClick("click", 0.6f);
+
+        _ambient = gameObject.AddComponent<AudioSource>();
+        _ambient.playOnAwake = false;
+        _ambient.spatialBlend = 0f;
+        _ambient.loop = true;
+        _ambient.clip = MakeBeepLoop("monitor", 60f / Mathf.Max(30f, beatsPerMinute));
+        _ambient.volume = ambientVolume;
+        if (ambientBeep) _ambient.Play();
         _clips[(int)Cue.Tick] = Make("tick", new[] { 1200f }, 0.03f, 0.5f, false);
         _clips[(int)Cue.Fork] = Make("fork", new[] { 660f, 880f }, 0.07f, 0.6f, false);
         _clips[(int)Cue.DeadEnd] = Make("deadend", new[] { 220f, 165f }, 0.11f, 0.5f, true);
@@ -43,6 +61,70 @@ public class AudioCues : MonoBehaviour
         if (_source == null || _clips == null) return;
         var clip = _clips[(int)cue];
         if (clip != null) _source.PlayOneShot(clip, volume);
+    }
+
+    void Update()
+    {
+        if (_ambient == null) return;
+        _ambient.volume = ambientVolume;
+        if (ambientBeep && !_ambient.isPlaying) _ambient.Play();
+        else if (!ambientBeep && _ambient.isPlaying) _ambient.Stop();
+    }
+
+    // Soft noise that swells and fades, with the brightness falling: a syringe push.
+    private static AudioClip MakeWhoosh(string name, float seconds, float gain)
+    {
+        int n = Mathf.RoundToInt(SampleRate * seconds);
+        var data = new float[n];
+        var rng = new System.Random(7);
+        float low = 0f;
+        for (int i = 0; i < n; i++)
+        {
+            float t = i / (float)n;
+            float white = (float)(rng.NextDouble() * 2.0 - 1.0);
+            float cutoff = Mathf.Lerp(0.25f, 0.03f, t);  // one-pole low-pass, closing over time
+            low += cutoff * (white - low);
+            float env = Mathf.Clamp01(t / 0.18f) * (1f - Mathf.SmoothStep(0.35f, 1f, t));
+            data[i] = low * env * gain * 2.5f;
+        }
+        var clip = AudioClip.Create(name, n, 1, SampleRate, false);
+        clip.SetData(data, 0);
+        return clip;
+    }
+
+    // A short dry click, like a device locking open.
+    private static AudioClip MakeClick(string name, float gain)
+    {
+        int n = Mathf.RoundToInt(SampleRate * 0.04f);
+        var data = new float[n];
+        var rng = new System.Random(3);
+        for (int i = 0; i < n; i++)
+        {
+            float decay = Mathf.Exp(-i / (SampleRate * 0.004f));
+            float tone = Mathf.Sin(2f * Mathf.PI * 2400f * i / SampleRate);
+            float noise = (float)(rng.NextDouble() * 2.0 - 1.0);
+            data[i] = (tone * 0.6f + noise * 0.4f) * decay * gain;
+        }
+        var clip = AudioClip.Create(name, n, 1, SampleRate, false);
+        clip.SetData(data, 0);
+        return clip;
+    }
+
+    // One soft beep followed by silence, looped for the background monitor.
+    private static AudioClip MakeBeepLoop(string name, float periodSeconds)
+    {
+        int n = Mathf.RoundToInt(SampleRate * periodSeconds);
+        int beep = Mathf.RoundToInt(SampleRate * 0.07f);
+        var data = new float[n];
+        for (int i = 0; i < beep && i < n; i++)
+        {
+            float t = i / (float)SampleRate;
+            float env = Mathf.Clamp01(i / (SampleRate * 0.005f)) * (1f - i / (float)beep);
+            data[i] = Mathf.Sin(2f * Mathf.PI * 1000f * t) * env * 0.8f;
+        }
+        var clip = AudioClip.Create(name, n, 1, SampleRate, false);
+        clip.SetData(data, 0);
+        return clip;
     }
 
     // Plays each frequency in turn, with a quick attack and a decay.

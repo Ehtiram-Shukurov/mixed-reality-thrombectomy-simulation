@@ -14,7 +14,7 @@ public static class Feedback
 
     public static void ContrastInjected()
     {
-        AudioCues.Instance?.Play(AudioCues.Cue.Tick);
+        AudioCues.Instance?.Play(AudioCues.Cue.Injection);
     }
 
     public static void DeadEnd()
@@ -38,6 +38,7 @@ public static class Feedback
     public static void StentDeployed()
     {
         HapticManager.Instance?.StentDeployed();
+        AudioCues.Instance?.Play(AudioCues.Cue.Click);
         AudioCues.Instance?.Play(AudioCues.Cue.Stent);
     }
 
