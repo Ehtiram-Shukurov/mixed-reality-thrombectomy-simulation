@@ -28,6 +28,8 @@ public class SimulationManager : MonoBehaviour
 
     [Header("UI")]
     public ResultsPanel resultsPanel;
+    [Tooltip("Card shown before each run. Without it the run starts right away.")]
+    public StartCard startCard;
 
     [Header("Stent")]
     [Tooltip("Seconds the stent stays open on the clot before you can pull back. Real procedures wait a few minutes; this is shortened.")]
@@ -107,7 +109,20 @@ public class SimulationManager : MonoBehaviour
             guidewireSimulator.Forced += OnForced;
         }
 
-        EnterPhase(SimPhase.Phase1_Navigation);
+        if (startCard != null) WaitAtCard(true);
+        else EnterPhase(SimPhase.Phase1_Navigation);
+    }
+
+    // Wait on the start card; it calls BeginRun when the user presses A.
+    private void WaitAtCard(bool firstTime)
+    {
+        EnterPhase(SimPhase.Idle);
+        startCard.Show(firstTime);
+    }
+
+    public void BeginRun()
+    {
+        if (CurrentPhase == SimPhase.Idle) EnterPhase(SimPhase.Phase1_Navigation);
     }
 
     void OnDestroy()
@@ -131,6 +146,10 @@ public class SimulationManager : MonoBehaviour
         if (_timerRunning) _totalTime += Time.deltaTime;
         if (CurrentPhase == SimPhase.Phase2c_Extraction && catheterSimulator != null && catheterSimulator.IsTooFast)
             _passTooFast += Time.deltaTime;
+
+        if (CurrentPhase == SimPhase.Idle && guidewireSimulator != null
+            && guidewireSimulator.enabled && guidewireSimulator.IsReady)
+            SetGuidewire(false);
 
         switch (CurrentPhase)
         {
@@ -177,7 +196,9 @@ public class SimulationManager : MonoBehaviour
         guidewireSimulator?.ResetGuidewire();
         _stent?.Hide();
         FindFirstObjectByType<XRayMonitor>()?.ClearRoadmap();
-        EnterPhase(SimPhase.Phase1_Navigation);
+        FindFirstObjectByType<TutorialGuide>()?.Stop();
+        if (startCard != null) WaitAtCard(false);
+        else EnterPhase(SimPhase.Phase1_Navigation);
     }
 
     // Harder cases need a more precise twist at each fork and a longer steady hold.
@@ -248,6 +269,12 @@ public class SimulationManager : MonoBehaviour
 
         switch (phase)
         {
+            case SimPhase.Idle:
+                // Waiting on the start card: the clock is stopped and the wire is switched off
+                // in Update once it has loaded (switching it off earlier would stop it loading).
+                _timerRunning = false;
+                break;
+
             case SimPhase.Phase1_Navigation:
                 _totalTime = 0f;
                 _timerRunning = true;

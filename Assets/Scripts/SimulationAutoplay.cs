@@ -9,6 +9,8 @@ public class SimulationAutoplay : MonoBehaviour
     public float timeScale = 5f;
     public bool takeWrongTurn = true;
     public bool testRestartHold = true;
+    [Tooltip("Only walk through the guided tutorial on the first run, then stop.")]
+    public bool tutorialOnly;
 
     public string Report = "";
     public bool Done;
@@ -46,6 +48,19 @@ public class SimulationAutoplay : MonoBehaviour
         SimInput.UseOverride = true;
         Time.timeScale = timeScale;
         Log("start: clot node " + _clot.ClotNode.id + ", case " + _clot.CaseLabel + ", phase " + _sm.CurrentPhase);
+        yield return PassCard();
+
+        if (tutorialOnly)
+        {
+            yield return WalkTutorial();
+            SimInput.StickOverride = Vector2.zero;
+            SimInput.FluoroOverride = false;
+            SimInput.UseOverride = false;
+            Time.timeScale = 1f;
+            Done = true;
+            Log("done");
+            yield break;
+        }
 
         yield return CheckDyeAndRoadmap();
 
@@ -56,6 +71,7 @@ public class SimulationAutoplay : MonoBehaviour
         SimInput.ConfirmOverride = true;
         yield return null;
         yield return null;
+        yield return PassCard();
         Log("after Play Again: phase " + _sm.CurrentPhase + ", depth " + _gw.HistoryDepth
             + ", trail " + _gw.TrailPoints.Count + ", atFork " + _gw.IsAtFork
             + ", panelActive " + _rp.gameObject.activeSelf + ", new clot node " + _clot.ClotNode.id);
@@ -93,6 +109,60 @@ public class SimulationAutoplay : MonoBehaviour
         Time.timeScale = 1f;
         Done = true;
         Log("done");
+    }
+
+    // Press A through the start card until the run begins.
+    private IEnumerator PassCard()
+    {
+        var card = FindFirstObjectByType<StartCard>(FindObjectsInactive.Include);
+        int presses = 0;
+        float t0 = Time.realtimeSinceStartup;
+        while (_sm.CurrentPhase == SimulationManager.SimPhase.Idle && Time.realtimeSinceStartup - t0 < 10f)
+        {
+            if (card != null && card.Showing && card.body != null && presses < 6)
+                Log("card: " + (card.title != null ? card.title.text : "") + " | footer " + (card.footer != null ? card.footer.text : ""));
+            SimInput.ConfirmOverride = true;
+            presses++;
+            for (int i = 0; i < 4; i++) yield return null;
+        }
+        SimInput.ConfirmOverride = false;
+        var guide = FindFirstObjectByType<TutorialGuide>();
+        Log("card passed after " + presses + " presses, phase " + _sm.CurrentPhase + ", tutorial running " + (guide != null && guide.Running)
+            + ", guide text: " + (GuidewireUI.Guide ?? "-"));
+    }
+
+    // Does what each tutorial step asks and logs when the step changes.
+    private IEnumerator WalkTutorial()
+    {
+        string last = GuidewireUI.Guide;
+        float t0 = Time.realtimeSinceStartup;
+        SimInput.ContrastOverride = true;
+        while (GuidewireUI.Guide != null && Time.realtimeSinceStartup - t0 < 90f)
+        {
+            string g = GuidewireUI.Guide;
+            Vector2 s = Vector2.zero;
+            bool a = false;
+            if (g.Contains("2/6") || g.Contains("4/6")) s = new Vector2(0f, 1f);
+            else if (g.Contains("3/6")) s = new Vector2(0f, -1f);
+            else if (g.Contains("5/6") && _gw.IsAtFork && _gw.DialCount > 0)
+            {
+                int want = 0;
+                for (int i = 0; i < _gw.CurrentNode.branches.Count && i < _gw.DialCount; i++)
+                    if (_clot.IsOnPath(_gw.CurrentNode.branches[i])) want = i;
+                float ang = _gw.DialAngles[want];
+                s = Mathf.Abs(ang) <= _gw.AlignmentTolerance - 3f ? new Vector2(0f, 1f) : new Vector2(ang > 0f ? 1f : -1f, 0f);
+            }
+            else if (g.Contains("6/6")) a = true;
+            SimInput.StickOverride = s;
+            SimInput.FluoroOverride = a;
+            yield return null;
+            if (GuidewireUI.Guide != last)
+            {
+                last = GuidewireUI.Guide;
+                Log("tutorial +" + (Time.realtimeSinceStartup - t0).ToString("F1") + " s: " + (last ?? "(ended)"));
+            }
+        }
+        Log("tutorial walk finished, phase " + _sm.CurrentPhase + ", guide " + (GuidewireUI.Guide ?? "none"));
     }
 
     // Dye run, vessel mesh mapping, roadmap on the monitor.

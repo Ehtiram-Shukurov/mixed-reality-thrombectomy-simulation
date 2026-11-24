@@ -90,6 +90,7 @@ public class XRayMonitor : MonoBehaviour
     private readonly System.Collections.Generic.List<Renderer> _shownNow = new System.Collections.Generic.List<Renderer>();
     private readonly System.Collections.Generic.List<Material> _metalWas = new System.Collections.Generic.List<Material>();
     private float _nextListRefresh;
+    private Transform _rig;
     private bool _hasRoadmap;
     private bool _capturedThisRun;
     public bool RoadmapShowing { get; private set; }
@@ -108,7 +109,7 @@ public class XRayMonitor : MonoBehaviour
         // Taller at the bottom to fit a line of controls under the screen.
         bezel.transform.localPosition = new Vector3(0f, 0.002f, 0.002f);
         bezel.transform.localScale = new Vector3(screenSize + 0.016f, screenSize + 0.07f, 1f);
-        var bezelMat = new Material(Shader.Find("Unlit/Color")) { color = new Color(0.05f, 0.07f, 0.09f, 1f) };
+        var bezelMat = new Material(Shader.Find("Unlit/Color")) { color = new Color(0.06f, 0.066f, 0.075f, 1f) };
         bezel.GetComponent<Renderer>().sharedMaterial = bezelMat;
 
         // The image.
@@ -234,13 +235,13 @@ public class XRayMonitor : MonoBehaviour
         if (mr != null) mr.enabled = false;
         _proxy.enabled = true;
 
-        if (!useProjection) return;
-
-        // An X-ray only sees what absorbs it: hide the hint graphics, show the devices as metal.
+        // An X-ray only sees what absorbs it: hide the hint graphics and your hands and
+        // controllers, show the devices as metal.
         if (Time.unscaledTime >= _nextListRefresh) RefreshXRayLists();
         _hiddenNow.Clear(); _shownNow.Clear(); _metalWas.Clear();
         foreach (var r in _xrayHide)
             if (r != null && r.enabled) { r.enabled = false; _hiddenNow.Add(r); }
+        if (!useProjection) return;
         foreach (var r in _xrayMetal)
             if (r != null) { _metalWas.Add(r.sharedMaterial); r.sharedMaterial = _radioMat; }
         foreach (var x in XRayOnly.All)
@@ -270,9 +271,13 @@ public class XRayMonitor : MonoBehaviour
         _nextListRefresh = Time.unscaledTime + 1f;
         _xrayHide.Clear(); _xrayMetal.Clear();
         int ui = LayerMask.NameToLayer("UI");
+        if (_rig == null) { var rig = FindFirstObjectByType<OVRCameraRig>(); if (rig != null) _rig = rig.transform; }
         foreach (var r in FindObjectsByType<Renderer>(FindObjectsSortMode.None))
         {
-            if (r == null || r == _proxy || r == _volumeRenderer || r.gameObject.layer == ui) continue;
+            if (r == null || r == _proxy || r == _volumeRenderer) continue;
+            // Hands and controllers all live under the headset rig.
+            if (_rig != null && r.transform.IsChildOf(_rig)) { _xrayHide.Add(r); continue; }
+            if (r.gameObject.layer == ui) continue;
             if (r.GetComponent<XRayOnly>() != null) continue;
             if (_vesselMesh != null && r == _vesselMesh.MeshRenderer) continue;
 
@@ -464,13 +469,21 @@ public class XRayMonitor : MonoBehaviour
     }
     private DyeFlow _dyeFlow;
 
-    // A new case starts without a roadmap.
+    // A new run starts with a blank monitor: no roadmap, no mask, no held image.
     public void ClearRoadmap()
     {
         _hasRoadmap = false;
         _capturedThisRun = false;
         _hasMask = false;
         _maskThisRun = false;
+        _hasImage = false;
+        if (_rt != null)
+        {
+            var was = RenderTexture.active;
+            RenderTexture.active = _rt;
+            GL.Clear(true, true, Color.clear);
+            RenderTexture.active = was;
+        }
     }
 
     private ClotTarget _clotForTitle;

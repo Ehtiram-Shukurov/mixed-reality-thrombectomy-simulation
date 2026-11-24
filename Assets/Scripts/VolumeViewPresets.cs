@@ -3,8 +3,8 @@ using UnityEngine;
 
 // Two ways to place the patient model in front of you:
 //  Upright: standing, chest end up, front facing you. Good for an overview.
-//  Supine: lying on the back at table height across in front of you, as on a cath-lab table,
-//          chest end to your left (you stand at the patient's right side).
+//  Supine: in the same spot, lying on the back as if it fell backward: front up,
+//          chest end away from you.
 // The body axes come from the vessel tree itself (long axis = where it spreads most,
 // front-back = where it is thinnest), so this works whatever way the model was turned before.
 // The model can still be grabbed and moved by hand afterwards.
@@ -14,14 +14,10 @@ public class VolumeViewPresets : MonoBehaviour
 
     public Transform volume;
     public CenterlineLoader centerlines;
-    [Header("Upright")]
-    public float uprightDistance = 0.55f;
+    [Tooltip("How far in front of you the model's center sits.")]
+    public float uprightDistance = 0.7f;
     [Tooltip("How far below eye level the model's center sits.")]
-    public float uprightBelowEyes = 0.35f;
-    [Header("Supine")]
-    public float supineDistance = 0.5f;
-    [Tooltip("How far below eye level the table sits.")]
-    public float supineBelowEyes = 0.65f;
+    public float uprightBelowEyes = 0.2f;
     public float moveSeconds = 0.6f;
     [Tooltip("Turn on if the model shows its back instead of its front.")]
     public bool flipFront;
@@ -98,19 +94,18 @@ public class VolumeViewPresets : MonoBehaviour
         Vector3 fwd = Vector3.ProjectOnPlane(head.forward, Vector3.up);
         if (fwd.sqrMagnitude < 1e-4f) fwd = Vector3.ProjectOnPlane(head.up, Vector3.up);
         fwd.Normalize();
-        Vector3 right = Vector3.Cross(Vector3.up, fwd);
-
-        Vector3 pos, wantLong, wantFront;
+        // Both views sit in the same spot in front of you.
+        Vector3 pos = head.position + fwd * uprightDistance + Vector3.down * uprightBelowEyes;
+        Vector3 wantLong, wantFront;
         if (pose == Pose.Upright)
         {
-            pos = head.position + fwd * uprightDistance + Vector3.down * uprightBelowEyes;
             wantLong = Vector3.up;
             wantFront = -fwd;
         }
         else
         {
-            pos = head.position + fwd * supineDistance + Vector3.down * supineBelowEyes;
-            wantLong = -right;
+            // As if the upright model fell backward: front up, chest end away from you.
+            wantLong = fwd;
             wantFront = Vector3.up;
         }
 
@@ -122,7 +117,7 @@ public class VolumeViewPresets : MonoBehaviour
         Current = pose;
         GuidewireUI.Notify(pose == Pose.Upright
             ? "Upright view: the patient stands in front of you. Grab the model to move it."
-            : "Supine view: the patient lies on a table, chest to your left, like in the cath lab.");
+            : "Supine view: the patient lies on their back, chest away from you. Grab the model to move it.");
         if (_move != null) StopCoroutine(_move);
         _move = StartCoroutine(MoveTo(pos, rot));
     }

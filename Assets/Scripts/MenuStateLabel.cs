@@ -11,14 +11,16 @@ public class MenuStateLabel : MonoBehaviour
     public enum Kind { Case, View, Mode }
     public Kind kind;
 
-    public Color tint = new Color(0.36f, 0.25f, 0.05f, 1f);
-    public Color activeTint = new Color(0.85f, 0.52f, 0.08f, 1f);
+    public Color tint = new Color(0.118f, 0.13f, 0.15f, 1f);
+    public Color activeTint = new Color(0.09f, 0.27f, 0.25f, 1f);
 
     private TextMeshProUGUI _label;
     private Toggle _toggle;
     private Image _background;
     private ClotTarget _clot;
     private VolumeViewPresets _view;
+    private Color _written = Color.clear;
+    private float _factor = 1f;
 
     void Start()
     {
@@ -32,7 +34,7 @@ public class MenuStateLabel : MonoBehaviour
     }
 
     private static string Text(string title, string value, string note)
-        => $"<size=60%><color=#FFD27A>{title}</color></size>\n<b>{value}</b>\n<size=60%>{note}</size>";
+        => $"<size=60%><color=#2BC4B4>{title}</color></size>\n<b>{value}</b>\n<size=60%>{note}</size>";
 
     void LateUpdate()
     {
@@ -66,7 +68,9 @@ public class MenuStateLabel : MonoBehaviour
         }
 
         if (_label != null && text != null && _label.text != text) _label.text = text;
-        if (_background != null) _background.color = active ? activeTint : tint;
+        // Keep the animator's hover and press shading on top of the amber.
+        if (_background != null)
+            MenuTileStyle.Apply(_background, active ? activeTint : tint, ref _written, ref _factor);
         if (kind != Kind.Mode && _toggle != null && _toggle.isOn) _toggle.SetIsOnWithoutNotify(false);
     }
 }

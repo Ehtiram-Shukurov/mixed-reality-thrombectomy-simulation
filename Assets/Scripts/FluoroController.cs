@@ -47,6 +47,8 @@ public class FluoroController : MonoBehaviour
     private float _contrastLeft;
     private SimulationManager _sim;
 
+    private bool _waitForRelease;
+
     void Start()
     {
         _sim = FindFirstObjectByType<SimulationManager>();
@@ -72,7 +74,13 @@ public class FluoroController : MonoBehaviour
 
         // A is the fluoroscopy pedal: live X-ray on the monitor while held, as in a cath lab.
         // The 3D model only turns into X-ray in Training mode, as a learning aid.
-        bool aHeld = SimInput.FluoroHeld;
+        // A is the start card's button while it shows, not the pedal. The press that starts the
+        // run (or any press that changed the phase) only counts as the pedal once A is let go.
+        bool rawA = SimInput.FluoroHeld;
+        if (_sim != null && (_sim.CurrentPhase == SimulationManager.SimPhase.Idle || _sim.PhaseChangedFrame == Time.frameCount) && rawA)
+            _waitForRelease = true;
+        if (!rawA) _waitForRelease = false;
+        bool aHeld = rawA && !_waitForRelease && (_sim == null || _sim.CurrentPhase != SimulationManager.SimPhase.Idle);
         bool xrayInScene = aHeld && showXRayInSceneInTraining && SimMode.HintsOn;
         if (xrayInScene && !MainViewXRay) SwitchMainToXRay();
         else if (!xrayInScene && MainViewXRay) RestoreMainView();
