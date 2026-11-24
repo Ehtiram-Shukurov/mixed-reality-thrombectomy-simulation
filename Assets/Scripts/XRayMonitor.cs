@@ -1,4 +1,5 @@
 using UnityEngine;
+using UnityEngine.Rendering;
 using TMPro;
 
 // A cath-lab style monitor. A camera looks at the volume from one fixed side, like a C-arm,
@@ -30,6 +31,17 @@ public class XRayMonitor : MonoBehaviour
     private Vector3 _viewLocal = Vector3.back;
     private Vector3 _upLocal = Vector3.up;
     private Transform _volume;
+
+    // The monitor draws its own X-ray copy of the volume, so dye can show here while the
+    // main view keeps its own render mode.
+    private DicomVolumeLoader _loader;
+    private Renderer _volumeRenderer;
+    private MeshRenderer _proxy;
+    private Material _proxyMat;
+    private VesselMeshView _vesselMesh;
+    private bool _volumeWasOn, _meshWasOn;
+    public Camera MonitorCamera => _cam;
+    public RenderTexture Image => _rt;
 
     void Awake()
     {
@@ -105,7 +117,59 @@ public class XRayMonitor : MonoBehaviour
         if (fluoro == null) fluoro = FindFirstObjectByType<FluoroController>();
         if (centerlineLoader == null) centerlineLoader = FindFirstObjectByType<CenterlineLoader>();
         if (centerlineLoader != null) _volume = centerlineLoader.volumeTransform;
+        _loader = FindFirstObjectByType<DicomVolumeLoader>();
+        _vesselMesh = FindFirstObjectByType<VesselMeshView>();
+        BuildProxy();
+        RenderPipelineManager.beginCameraRendering += OnBeginCamera;
+        RenderPipelineManager.endCameraRendering += OnEndCamera;
         SetStatus();
+    }
+
+    private void BuildProxy()
+    {
+        if (_loader == null) return;
+        _volumeRenderer = _loader.GetComponent<Renderer>();
+        var mf = _loader.GetComponent<MeshFilter>();
+        if (_volumeRenderer == null || mf == null) return;
+
+        // Same cube, same place, no collider. Only switched on while the monitor camera draws.
+        var go = new GameObject("XRayProxy");
+        go.transform.SetParent(_loader.transform, false);
+        go.AddComponent<MeshFilter>().sharedMesh = mf.sharedMesh;
+        _proxy = go.AddComponent<MeshRenderer>();
+        _proxyMat = new Material(_loader.volumeMaterial);
+        _proxy.sharedMaterial = _proxyMat;
+        _proxy.shadowCastingMode = ShadowCastingMode.Off;
+        _proxy.receiveShadows = false;
+        _proxy.enabled = false;
+    }
+
+    // Swap what is drawn for the monitor camera only. Culling happens after this call.
+    private void OnBeginCamera(ScriptableRenderContext ctx, Camera cam)
+    {
+        if (cam != _cam || _proxy == null) return;
+
+        // Copy the current volume settings (textures, thresholds, hand clipping), then force X-ray.
+        _proxyMat.CopyPropertiesFromMaterial(_loader.volumeMaterial);
+        _proxyMat.SetFloat("_RenderMode", fluoro != null ? fluoro.fluoroRenderMode : 6);
+        _proxyMat.SetFloat("_Contrast", fluoro != null ? fluoro.ContrastLevel : 1f);
+        _proxyMat.SetFloat("_Steps", Mathf.Max(48f, _loader.volumeMaterial.GetFloat("_Steps")));
+
+        _volumeWasOn = _volumeRenderer.enabled;
+        _volumeRenderer.enabled = false;
+        var mr = _vesselMesh != null ? _vesselMesh.MeshRenderer : null;
+        _meshWasOn = mr != null && mr.enabled;
+        if (mr != null) mr.enabled = false;
+        _proxy.enabled = true;
+    }
+
+    private void OnEndCamera(ScriptableRenderContext ctx, Camera cam)
+    {
+        if (cam != _cam || _proxy == null) return;
+        _proxy.enabled = false;
+        _volumeRenderer.enabled = _volumeWasOn;
+        var mr = _vesselMesh != null ? _vesselMesh.MeshRenderer : null;
+        if (mr != null) mr.enabled = _meshWasOn;
     }
 
     // Look along the axis where the vessel tree is thinnest, so the projection shows it spread out,
@@ -189,6 +253,8 @@ public class XRayMonitor : MonoBehaviour
 
     void OnDestroy()
     {
+        RenderPipelineManager.beginCameraRendering -= OnBeginCamera;
+        RenderPipelineManager.endCameraRendering -= OnEndCamera;
         if (_rt != null) _rt.Release();
     }
 }
