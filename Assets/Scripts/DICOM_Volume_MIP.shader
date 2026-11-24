@@ -292,16 +292,13 @@ Shader "Custom/DICOM_Volume_MIP_VR_Stable"
                             float mu = saturate((raw - _DrrLow) / max(1e-3, 1.0 - _DrrLow));
                             float segRaw7 = tex3Dlod(_SegmentationTex, float4(uv, 0)).r;
                             int label7 = round(segRaw7 * 117.0);
-                            if (label7 >= 22 && label7 <= 29)
+                            // Blood absorbs about like the tissue around it, so vessels only stand out
+                            // where dye has arrived.
+                            if (label7 >= 22 && label7 <= 29 && _VolDyeOn > 0.5)
                             {
-                                float c7 = _Contrast;
-                                if (_VolDyeOn > 0.5)
-                                {
-                                    float dd7 = tex3Dlod(_VolDyeTex, float4(uv, 0)).r;
-                                    float reach7 = saturate((_VolDyeFront - dd7) / max(_VolDyeFeather, 1e-4));
-                                    c7 = lerp(_VolDyePlain, _Contrast, reach7);
-                                }
-                                mu += c7 * _DrrDye;
+                                float dd7 = tex3Dlod(_VolDyeTex, float4(uv, 0)).r;
+                                float reach7 = saturate((_VolDyeFront - dd7) / max(_VolDyeFeather, 1e-4));
+                                mu += _Contrast * reach7 * _DrrDye;
                             }
                             cumulative_density += mu;
                         }
