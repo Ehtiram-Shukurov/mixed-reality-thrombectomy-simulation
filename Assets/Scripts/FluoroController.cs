@@ -72,7 +72,8 @@ public class FluoroController : MonoBehaviour
 
         // A is the fluoroscopy pedal: live X-ray on the monitor while held, as in a cath lab.
         // The 3D model only turns into X-ray in Training mode, as a learning aid.
-        bool aHeld = SimInput.FluoroHeld;
+        // A is the start card's button while it shows, not the pedal.
+        bool aHeld = SimInput.FluoroHeld && (_sim == null || _sim.CurrentPhase != SimulationManager.SimPhase.Idle);
         bool xrayInScene = aHeld && showXRayInSceneInTraining && SimMode.HintsOn;
         if (xrayInScene && !MainViewXRay) SwitchMainToXRay();
         else if (!xrayInScene && MainViewXRay) RestoreMainView();

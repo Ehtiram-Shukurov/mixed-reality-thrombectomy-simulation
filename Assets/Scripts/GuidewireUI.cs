@@ -33,6 +33,8 @@ public class GuidewireUI : MonoBehaviour
     }
 
     // A short message that replaces the instruction for a few seconds, after a menu setting changes.
+    // Tutorial step text. Replaces the normal instruction while set.
+    public static string Guide;
     private static string _notice;
     private static float _noticeUntil;
     public static void Notify(string message, float seconds = 3f)
@@ -47,6 +49,11 @@ public class GuidewireUI : MonoBehaviour
         if (_notice != null && Time.time < _noticeUntil)
         {
             instructionText.text = _notice;
+            return;
+        }
+        if (Guide != null)
+        {
+            instructionText.text = Guide;
             return;
         }
 

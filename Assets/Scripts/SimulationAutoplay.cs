@@ -46,6 +46,7 @@ public class SimulationAutoplay : MonoBehaviour
         SimInput.UseOverride = true;
         Time.timeScale = timeScale;
         Log("start: clot node " + _clot.ClotNode.id + ", case " + _clot.CaseLabel + ", phase " + _sm.CurrentPhase);
+        yield return PassCard();
 
         yield return CheckDyeAndRoadmap();
 
@@ -56,6 +57,7 @@ public class SimulationAutoplay : MonoBehaviour
         SimInput.ConfirmOverride = true;
         yield return null;
         yield return null;
+        yield return PassCard();
         Log("after Play Again: phase " + _sm.CurrentPhase + ", depth " + _gw.HistoryDepth
             + ", trail " + _gw.TrailPoints.Count + ", atFork " + _gw.IsAtFork
             + ", panelActive " + _rp.gameObject.activeSelf + ", new clot node " + _clot.ClotNode.id);
@@ -93,6 +95,26 @@ public class SimulationAutoplay : MonoBehaviour
         Time.timeScale = 1f;
         Done = true;
         Log("done");
+    }
+
+    // Press A through the start card until the run begins.
+    private IEnumerator PassCard()
+    {
+        var card = FindFirstObjectByType<StartCard>(FindObjectsInactive.Include);
+        int presses = 0;
+        float t0 = Time.realtimeSinceStartup;
+        while (_sm.CurrentPhase == SimulationManager.SimPhase.Idle && Time.realtimeSinceStartup - t0 < 10f)
+        {
+            if (card != null && card.Showing && card.body != null && presses < 6)
+                Log("card: " + (card.title != null ? card.title.text : "") + " | footer " + (card.footer != null ? card.footer.text : ""));
+            SimInput.ConfirmOverride = true;
+            presses++;
+            for (int i = 0; i < 4; i++) yield return null;
+        }
+        SimInput.ConfirmOverride = false;
+        var guide = FindFirstObjectByType<TutorialGuide>();
+        Log("card passed after " + presses + " presses, phase " + _sm.CurrentPhase + ", tutorial running " + (guide != null && guide.Running)
+            + ", guide text: " + (GuidewireUI.Guide ?? "-"));
     }
 
     // Dye run, vessel mesh mapping, roadmap on the monitor.
