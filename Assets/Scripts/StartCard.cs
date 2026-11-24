@@ -70,17 +70,8 @@ public class StartCard : MonoBehaviour
 
         if (SimInput.ConfirmPressed)
         {
-            if (_aboutDone != null && _page == Page.Controls)
-            {
-                var done = _aboutDone;
-                Hide(false);
-                done();
-                return;
-            }
-            if (_page == Page.Case) { StartRun(); return; }
-            _page++;
-            _shownAt = Time.unscaledTime;
-            Refresh();
+            Advance();
+            return;
         }
         else if (_page == Page.Case && SimInput.StentPressed && SimMode.HintsOn)
         {
@@ -90,6 +81,24 @@ public class StartCard : MonoBehaviour
 
         // Mode or case can change from the menu while the card is up.
         if (_page == Page.Case) Refresh();
+    }
+
+    // The footer button (poke) and the A button do the same: next page, start, or back.
+    public void Advance()
+    {
+        if (!Showing || Time.frameCount <= _shownFrame + 1) return;
+        Debug.Log("[StartCard] advance from page " + _page);
+        if (_aboutDone != null && _page == Page.Controls)
+        {
+            var done = _aboutDone;
+            Hide(false);
+            done();
+            return;
+        }
+        if (_page == Page.Case) { StartRun(); return; }
+        _page++;
+        _shownAt = Time.unscaledTime;
+        Refresh();
     }
 
     private void StartRun()
@@ -161,8 +170,12 @@ public class StartCard : MonoBehaviour
 
     private static string Row(string action, string key) => $"{action}<pos=50%><color={Grey}>{key}</color>\n";
 
-    // A hint, not a button: the card is moved on with the A button on the controller.
-    private static string Footer(string what) => $"<color={Grey}>Press</color> <color={Teal}><b>A</b></color> <color={Grey}>to {what}</color>";
+    // The footer is a poke button; A on the controller does the same.
+    private static string Footer(string what)
+    {
+        string label = what == "start" ? "Start" : what == "go back" ? "Back" : "Continue";
+        return $"<b>{label}</b>  <size=80%><color={Grey}>or press</color> <color={Teal}><b>A</b></color></size>";
+    }
     private const string Teal = "#2BC4B4";
 
     void OnDisable()

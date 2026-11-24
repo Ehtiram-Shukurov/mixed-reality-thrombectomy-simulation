@@ -26,6 +26,7 @@ public class TapButton : MonoBehaviour
     {
         if (!on) return;
         _toggle.SetIsOnWithoutNotify(false);
+        Debug.Log("[Tap] " + name);
         onTap.Invoke();
     }
 }

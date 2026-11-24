@@ -80,15 +80,48 @@ public class ModalLayer : MonoBehaviour
         Changed?.Invoke(false);
     }
 
-    private void PlaceInFront()
+    private Vector3 _anchorEye, _anchorFwd = Vector3.forward;
+    private bool _following;
+
+    private static bool HeadPose(out Vector3 eye, out Vector3 fwd)
     {
+        eye = Vector3.zero; fwd = Vector3.forward;
         var head = FxUtil.FindHead();
-        if (head == null) return;
-        Vector3 fwd = Vector3.ProjectOnPlane(head.forward, Vector3.up);
+        if (head == null) return false;
+        eye = head.position;
+        fwd = Vector3.ProjectOnPlane(head.forward, Vector3.up);
         if (fwd.sqrMagnitude < 1e-4f) fwd = Vector3.forward;
         fwd.Normalize();
-        transform.position = head.position + fwd * distance + Vector3.down * belowEyes;
-        transform.rotation = Quaternion.LookRotation(fwd, Vector3.up);
+        return true;
+    }
+
+    private void PlaceInFront()
+    {
+        if (!HeadPose(out _anchorEye, out _anchorFwd)) return;
+        _following = false;
+        Apply();
+    }
+
+    private void Apply()
+    {
+        transform.position = _anchorEye + _anchorFwd * distance + Vector3.down * belowEyes;
+        transform.rotation = Quaternion.LookRotation(_anchorFwd, Vector3.up);
+    }
+
+    // While a pop-up is open it glides back in front of you if you turn or move away.
+    void Update()
+    {
+        if (!IsOpen || !HeadPose(out var eye, out var fwd)) return;
+        float yaw = Mathf.Abs(Vector3.SignedAngle(_anchorFwd, fwd, Vector3.up));
+        float walk = Vector3.ProjectOnPlane(eye - _anchorEye, Vector3.up).magnitude;
+        float rise = Mathf.Abs(eye.y - _anchorEye.y);
+        if (!_following && (yaw > 25f || walk > 0.3f || rise > 0.2f)) _following = true;
+        if (!_following) return;
+        float k = 1f - Mathf.Exp(-4f * Time.unscaledDeltaTime);
+        _anchorEye = Vector3.Lerp(_anchorEye, eye, k);
+        _anchorFwd = Vector3.Slerp(_anchorFwd, fwd, k).normalized;
+        if (yaw < 2f && walk < 0.02f && rise < 0.02f) _following = false;
+        Apply();
     }
 
     private void Dim(bool on)

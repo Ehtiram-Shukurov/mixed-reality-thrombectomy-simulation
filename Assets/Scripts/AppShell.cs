@@ -98,11 +98,73 @@ public class AppShell : MonoBehaviour
     {
         if (SettingsShowing) RefreshSettingsLabels();
 
+        if (!_home) return;
+        FollowHead();
+
         // The showcase model turns slowly while the home screen is up.
-        if (_home && viewPresets != null && viewPresets.volume != null)
+        if (viewPresets != null && viewPresets.volume != null)
         {
             _spin += spinDegreesPerSecond * Time.unscaledDeltaTime;
             viewPresets.volume.rotation = Quaternion.AngleAxis(_spin, Vector3.up) * _modelBase;
+        }
+    }
+
+    // ---------- Home placement ----------
+    // The home screen stays put while you look around and glides back in front of you when
+    // you turn more than 30 degrees, walk away or stand up / sit down. This also fixes a
+    // placement made before head tracking settled.
+    private Vector3 _anchorEye, _anchorFwd = Vector3.forward;
+    private bool _following;
+
+    private static bool HeadPose(out Vector3 eye, out Vector3 fwd)
+    {
+        eye = new Vector3(0f, 1.5f, 0f); fwd = Vector3.forward;
+        var head = FxUtil.FindHead();
+        if (head == null) return false;
+        eye = head.position;
+        fwd = Vector3.ProjectOnPlane(head.forward, Vector3.up);
+        if (fwd.sqrMagnitude < 1e-4f) fwd = Vector3.forward;
+        fwd.Normalize();
+        return true;
+    }
+
+    private void SnapHomeToHead()
+    {
+        HeadPose(out _anchorEye, out _anchorFwd);
+        _following = false;
+        PlaceHome();
+    }
+
+    private void FollowHead()
+    {
+        if (!HeadPose(out var eye, out var fwd)) return;
+        float yaw = Mathf.Abs(Vector3.SignedAngle(_anchorFwd, fwd, Vector3.up));
+        float walk = Vector3.ProjectOnPlane(eye - _anchorEye, Vector3.up).magnitude;
+        float rise = Mathf.Abs(eye.y - _anchorEye.y);
+        if (!_following && (yaw > 30f || walk > 0.35f || rise > 0.2f)) _following = true;
+        if (!_following) return;
+
+        float k = 1f - Mathf.Exp(-4f * Time.unscaledDeltaTime);
+        _anchorEye = Vector3.Lerp(_anchorEye, eye, k);
+        _anchorFwd = Vector3.Slerp(_anchorFwd, fwd, k).normalized;
+        if (yaw < 2f && walk < 0.02f && rise < 0.02f) _following = false;
+        PlaceHome();
+    }
+
+    // Menu on the left, model on the right, both relative to the anchor.
+    private void PlaceHome()
+    {
+        Vector3 right = Vector3.Cross(Vector3.up, _anchorFwd);
+        if (homePanel != null)
+        {
+            homePanel.transform.position = _anchorEye + _anchorFwd * homeDistance - right * homeMenuLeft;
+            homePanel.transform.rotation = Quaternion.LookRotation(homePanel.transform.position - _anchorEye, Vector3.up);
+        }
+        if (viewPresets != null && viewPresets.volume != null)
+        {
+            Vector3 pos = _anchorEye + _anchorFwd * modelDistance + right * modelRight + Vector3.down * modelBelowEyes;
+            if (viewPresets.UprightRotation(_anchorEye - pos, out _modelBase))
+                viewPresets.volume.SetPositionAndRotation(pos, Quaternion.AngleAxis(_spin, Vector3.up) * _modelBase);
         }
     }
 
@@ -170,6 +232,7 @@ public class AppShell : MonoBehaviour
 
     private void EnterHome()
     {
+        Debug.Log("[AppShell] home screen");
         Time.timeScale = 1f;
         if (settingsPanel != null) settingsPanel.SetActive(false);
         if (casePicker != null) casePicker.SetActive(false);
@@ -178,33 +241,9 @@ public class AppShell : MonoBehaviour
         if (phaseCard != null) phaseCard.SetActive(false);
         SetSessionVisuals(false);
 
-        var head = FxUtil.FindHead();
-        Vector3 fwd = Vector3.forward, right = Vector3.right, eye = new Vector3(0f, 1.5f, 0f);
-        if (head != null)
-        {
-            fwd = Vector3.ProjectOnPlane(head.forward, Vector3.up);
-            if (fwd.sqrMagnitude < 1e-4f) fwd = Vector3.forward;
-            fwd.Normalize();
-            right = Vector3.Cross(Vector3.up, fwd);
-            eye = head.position;
-        }
-
-        // Menu on the left, model on the right.
-        if (homePanel != null)
-        {
-            homePanel.transform.position = eye + fwd * homeDistance - right * homeMenuLeft;
-            homePanel.transform.rotation = Quaternion.LookRotation(homePanel.transform.position - eye, Vector3.up);
-            homePanel.SetActive(true);
-        }
-        if (viewPresets != null && viewPresets.volume != null)
-        {
-            Vector3 pos = eye + fwd * modelDistance + right * modelRight + Vector3.down * modelBelowEyes;
-            if (viewPresets.UprightRotation(eye - pos, out _modelBase))
-            {
-                _spin = 0f;
-                viewPresets.volume.SetPositionAndRotation(pos, _modelBase);
-            }
-        }
+        _spin = 0f;
+        if (homePanel != null) homePanel.SetActive(true);
+        SnapHomeToHead();
 
         // The showcase uses the smooth vessel mesh, the cheapest view.
         if (loader != null && loader.volumeMaterial != null)
@@ -222,6 +261,7 @@ public class AppShell : MonoBehaviour
 
     private void EnterSession(ClotTarget.CaseLevel level, bool assessment, bool tutorial)
     {
+        Debug.Log($"[AppShell] session: {level}, assessment {assessment}, tutorial {tutorial}");
         _home = false;
         AtHome = false;
         if (homePanel != null) homePanel.SetActive(false);
