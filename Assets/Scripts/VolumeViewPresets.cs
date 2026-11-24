@@ -15,9 +15,9 @@ public class VolumeViewPresets : MonoBehaviour
     public Transform volume;
     public CenterlineLoader centerlines;
     [Tooltip("How far in front of you the model's center sits.")]
-    public float uprightDistance = 0.55f;
+    public float uprightDistance = 0.7f;
     [Tooltip("How far below eye level the model's center sits.")]
-    public float uprightBelowEyes = 0.35f;
+    public float uprightBelowEyes = 0.2f;
     public float moveSeconds = 0.6f;
     [Tooltip("Turn on if the model shows its back instead of its front.")]
     public bool flipFront;

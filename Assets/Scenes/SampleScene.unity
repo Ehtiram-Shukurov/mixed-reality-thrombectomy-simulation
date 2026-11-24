@@ -16538,8 +16538,8 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::VolumeViewPresets
   volume: {fileID: 72244407}
   centerlines: {fileID: 0}
-  uprightDistance: 0.55
-  uprightBelowEyes: 0.35
+  uprightDistance: 0.7
+  uprightBelowEyes: 0.2
   moveSeconds: 0.6
   flipFront: 0
 --- !u!4 &927170519
@@ -24437,7 +24437,7 @@ MonoBehaviour:
   m_fontMaterials: []
   m_fontColor32:
     serializedVersion: 2
-    rgba: 4294967295
+    rgba: 4289107596
   m_fontColor: {r: 0.55, g: 0.59, b: 0.65, a: 1}
   m_enableVertexGradient: 0
   m_colorMode: 3
@@ -24450,7 +24450,7 @@ MonoBehaviour:
   m_spriteAsset: {fileID: 0}
   m_tintAllSprites: 0
   m_StyleSheet: {fileID: 0}
-  m_TextStyleHashCode: 0
+  m_TextStyleHashCode: -1183493901
   m_overrideHtmlColors: 0
   m_faceColor:
     serializedVersion: 2
