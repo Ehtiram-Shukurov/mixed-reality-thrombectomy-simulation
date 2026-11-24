@@ -30,6 +30,8 @@ public class SimulationManager : MonoBehaviour
     public ResultsPanel resultsPanel;
     [Tooltip("Card shown before each run. Without it the run starts right away.")]
     public StartCard startCard;
+    [Tooltip("Home screen, settings and about. Without it the app opens on the start card.")]
+    public AppShell appShell;
 
     [Header("Stent")]
     [Tooltip("Seconds the stent stays open on the clot before you can pull back. Real procedures wait a few minutes; this is shortened.")]
@@ -109,7 +111,8 @@ public class SimulationManager : MonoBehaviour
             guidewireSimulator.Forced += OnForced;
         }
 
-        if (startCard != null) WaitAtCard(true);
+        if (appShell != null) { EnterPhase(SimPhase.Idle); appShell.Launch(); }
+        else if (startCard != null) WaitAtCard(true);
         else EnterPhase(SimPhase.Phase1_Navigation);
     }
 
@@ -189,6 +192,29 @@ public class SimulationManager : MonoBehaviour
     // Used by Play Again and by the left Y hold. Puts everything back at the start.
     public void RestartRun()
     {
+        ResetAll();
+        if (startCard != null) WaitAtCard(false);
+        else EnterPhase(SimPhase.Phase1_Navigation);
+    }
+
+    // A clean start before the case card: no run left over from before.
+    public void PrepareRun()
+    {
+        ResetAll();
+        EnterPhase(SimPhase.Idle);
+    }
+
+    // Back to the home screen from the results or from settings.
+    public void ReturnHome()
+    {
+        ResetAll();
+        EnterPhase(SimPhase.Idle);
+        if (appShell != null) appShell.ShowHome();
+        else if (startCard != null) startCard.Show(false);
+    }
+
+    private void ResetAll()
+    {
         if (resultsPanel != null) resultsPanel.gameObject.SetActive(false);
         HapticManager.Instance?.StopAll();
         catheterSimulator?.ResetCatheter();
@@ -197,8 +223,6 @@ public class SimulationManager : MonoBehaviour
         _stent?.Hide();
         FindFirstObjectByType<XRayMonitor>()?.ClearRoadmap();
         FindFirstObjectByType<TutorialGuide>()?.Stop();
-        if (startCard != null) WaitAtCard(false);
-        else EnterPhase(SimPhase.Phase1_Navigation);
     }
 
     // Harder cases need a more precise twist at each fork and a longer steady hold.
@@ -429,6 +453,7 @@ public class SimulationManager : MonoBehaviour
         int contrast = fluoroController != null ? fluoroController.ContrastRuns : 0;
         resultsPanel?.ShowResults(_totalTime, exposure, rating, color, _wrongTurns, _deadEnds, contrast, _forcedBends);
         resultsPanel?.ShowOutcome(OutcomeText, _reopened);
+        if (appShell != null && clotTarget != null) appShell.RecordRun(clotTarget.caseLevel, _totalTime, _reopened);
         WriteRunLog(exposure, rating);
     }
 

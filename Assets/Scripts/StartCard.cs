@@ -37,10 +37,22 @@ public class StartCard : MonoBehaviour
         Refresh();
     }
 
-    public void Hide()
+    // showPhaseCard: false when the card closes without starting a run (about, settings, home).
+    public void Hide(bool showPhaseCard = true)
     {
         gameObject.SetActive(false);
-        if (phaseCard != null) phaseCard.SetActive(true);
+        _aboutDone = null;
+        if (showPhaseCard && phaseCard != null) phaseCard.SetActive(true);
+    }
+
+    public void SetTutorial(bool on) => TutorialOn = on;
+
+    // About from the home screen: what the procedure is and the controls, then back.
+    private System.Action _aboutDone;
+    public void ShowAbout(System.Action done)
+    {
+        Show(true);
+        _aboutDone = done;
     }
 
     void Update()
@@ -58,10 +70,8 @@ public class StartCard : MonoBehaviour
 
         if (SimInput.ConfirmPressed)
         {
-            if (_page == Page.Case) { StartRun(); return; }
-            _page++;
-            _shownAt = Time.unscaledTime;
-            Refresh();
+            Advance();
+            return;
         }
         else if (_page == Page.Case && SimInput.StentPressed && SimMode.HintsOn)
         {
@@ -71,6 +81,24 @@ public class StartCard : MonoBehaviour
 
         // Mode or case can change from the menu while the card is up.
         if (_page == Page.Case) Refresh();
+    }
+
+    // The footer button (poke) and the A button do the same: next page, start, or back.
+    public void Advance()
+    {
+        if (!Showing || Time.frameCount <= _shownFrame + 1) return;
+        Debug.Log("[StartCard] advance from page " + _page);
+        if (_aboutDone != null && _page == Page.Controls)
+        {
+            var done = _aboutDone;
+            Hide(false);
+            done();
+            return;
+        }
+        if (_page == Page.Case) { StartRun(); return; }
+        _page++;
+        _shownAt = Time.unscaledTime;
+        Refresh();
     }
 
     private void StartRun()
@@ -89,12 +117,13 @@ public class StartCard : MonoBehaviour
         {
             case Page.Intro:
                 head = "Thrombectomy in mixed reality";
-                text = "A stroke is often caused by a clot in an artery. In a thrombectomy the doctor pushes "
-                     + "a thin wire to the clot, slides a catheter over it, opens a mesh stent in the clot and "
-                     + "pulls it out.\n\n"
-                     + "You do these steps in a real CT scan of the chest and belly, so the clot is in a body "
-                     + "artery, not the brain.\n\n"
-                     + $"<color={Grey}>Simplified training, not a medical device.</color>";
+                text = "<line-height=130%>"
+                     + Bullet("A clot blocks an artery.")
+                     + Bullet("You remove it: wire, stent, pull.")
+                     + Bullet("Real CT of chest and belly.")
+                     + Bullet("So the clot is not in the brain.")
+                     + "</line-height>\n"
+                     + $"<size=85%><color={Grey}>Simplified training, not a medical device.</color></size>";
                 foot = Footer("continue");
                 break;
 
@@ -108,9 +137,8 @@ public class StartCard : MonoBehaviour
                      + Row("X-ray", "hold A")
                      + Row("Restart", "hold stick")
                      + "</line-height>\n"
-                     + $"<size=85%><color={Grey}>Pinch to grab the model and poke the menu. "
-                     + "Left palm pinch hides the menu. Tap the stick to turn the C-arm.</color></size>";
-                foot = Footer("continue");
+                     + $"<size=85%><color={Grey}>Pinch: grab the model. Left palm pinch: hide the menu. Tap stick: C-arm.</color></size>";
+                foot = Footer(_aboutDone != null ? "go back" : "continue");
                 break;
 
             default:
@@ -118,19 +146,18 @@ public class StartCard : MonoBehaviour
                 int forks = clotTarget != null ? clotTarget.ForksOnPath : 0;
                 string twist = clotTarget == null ? "" : clotTarget.caseLevel switch
                 {
-                    ClotTarget.CaseLevel.Easy => "Forks accept a wide twist.",
-                    ClotTarget.CaseLevel.Hard => "Forks need a tight, steady twist.",
-                    _ => "Forks need a normal twist."
+                    ClotTarget.CaseLevel.Easy => "wide",
+                    ClotTarget.CaseLevel.Hard => "tight",
+                    _ => "normal"
                 };
-                string mode = SimMode.HintsOn
-                    ? "Training: fork hints and a clot marker help you."
-                    : "Assessment: no hints. Your run is scored.";
-                string tut = SimMode.HintsOn
-                    ? $"\n\nGuided tutorial: <b>{(TutorialOn ? "on" : "off")}</b>  <color={Grey}>(B to switch)</color>"
-                    : "";
-                text = $"{forks} fork{(forks == 1 ? "" : "s")} on the way to the clot. {twist}\n\n"
-                     + "Find the clot with dye, cross it with the wire, open the stent and pull the clot out slowly.\n\n"
-                     + $"<color={Grey}>{mode}</color>" + tut;
+                text = "<line-height=130%>"
+                     + Bullet($"{forks} fork{(forks == 1 ? "" : "s")}, {twist} twist")
+                     + Bullet("Find the clot with dye.")
+                     + Bullet("Wire, stent, slow pull.")
+                     + Bullet(SimMode.HintsOn ? "Hints on" : "No hints")
+                     + "</line-height>";
+                if (SimMode.HintsOn)
+                    text += $"\n<size=85%><color={Grey}>Tutorial: {(TutorialOn ? "on" : "off")}  (B to switch)</color></size>";
                 foot = Footer("start");
                 break;
         }
@@ -140,10 +167,16 @@ public class StartCard : MonoBehaviour
         if (footer != null && footer.text != foot) footer.text = foot;
     }
 
+    private static string Bullet(string s) => $"<color={Teal}>•</color>  {s}\n";
+
     private static string Row(string action, string key) => $"{action}<pos=50%><color={Grey}>{key}</color>\n";
 
-    // A hint, not a button: the card is moved on with the A button on the controller.
-    private static string Footer(string what) => $"<color={Grey}>Press</color> <color={Teal}><b>A</b></color> <color={Grey}>to {what}</color>";
+    // The footer is a poke button; A on the controller does the same.
+    private static string Footer(string what)
+    {
+        string label = what == "start" ? "Start" : what == "go back" ? "Back" : "Continue";
+        return $"<b>{label}</b>  <size=80%><color={Grey}>or press</color> <color={Teal}><b>A</b></color></size>";
+    }
     private const string Teal = "#2BC4B4";
 
     void OnDisable()
