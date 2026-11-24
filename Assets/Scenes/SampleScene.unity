@@ -5137,6 +5137,7 @@ MonoBehaviour:
   fluoroController: {fileID: 1269141809}
   wireTip: {fileID: 1269141803}
   upperFraction: 0.3
+  caseLevel: 0
   crossNodes: 8
   minCrossNodes: 3
   keepRoadmapMarker: 1
@@ -11426,6 +11427,60 @@ Transform:
   - {fileID: 1323209560}
   m_Father: {fileID: 1140298354}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!1 &717256682
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 717256684}
+  - component: {fileID: 717256683}
+  m_Layer: 0
+  m_Name: DebriefReplay
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!114 &717256683
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 717256682}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 10e8d0e749483ed44ac8bc2145ae8a4b, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::DebriefReplay
+  guidewire: {fileID: 1269141805}
+  clot: {fileID: 300974650}
+  sim: {fileID: 1634681679}
+  width: 0.004
+  replaySeconds: 6
+  minStep: 0.002
+  maxMarkers: 24
+  onTrack: {r: 0.3, g: 0.85, b: 0.5, a: 0.95}
+  offTrack: {r: 0.98, g: 0.75, b: 0.14, a: 0.95}
+  mistake: {r: 0.97, g: 0.4, b: 0.36, a: 1}
+--- !u!4 &717256684
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 717256682}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 0}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &718294186
 GameObject:
   m_ObjectHideFlags: 0
@@ -14648,6 +14703,8 @@ MonoBehaviour:
   resolution: 384
   fieldOfView: 48
   distance: 1.25
+  useRoadmap: 1
+  roadmapCaptureAt: 1.2
 --- !u!4 &897870702
 Transform:
   m_ObjectHideFlags: 0
@@ -20394,6 +20451,15 @@ MonoBehaviour:
   alignHoldSeconds: 0.4
   minBranchSeparation: 40
   branchLookAhead: 4
+  useControllerRoll: 1
+  rollGain: 1
+  bendWindow: 4
+  bendStart: 25
+  bendFull: 70
+  bendMinSpeed: 0.35
+  forceStick: 0.9
+  forceAngle: 45
+  forceSeconds: 0.35
 --- !u!114 &1269141806
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -27556,6 +27622,9 @@ MonoBehaviour:
   clotTarget: {fileID: 300974650}
   resultsPanel: {fileID: 1333047835}
   stentDwellSeconds: 3
+  fragmentPenaltyThreshold: 10
+  maxPasses: 3
+  angioSeconds: 4.5
   restartHoldSeconds: 2
 --- !u!114 &1634681680
 MonoBehaviour:
@@ -27592,6 +27661,7 @@ MonoBehaviour:
   advanceHum: 0.15
   retractHum: 0.1
   tooFastHum: 0.7
+  bendHumMax: 0.45
   forkArrival: 0.4
   forkArrivalTime: 0.15
   forkAlignMax: 0.5
@@ -35723,3 +35793,4 @@ SceneRoots:
   - {fileID: 1199039192}
   - {fileID: 897870702}
   - {fileID: 161224163}
+  - {fileID: 717256684}

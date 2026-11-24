@@ -53,7 +53,7 @@ public class GuidewireUI : MonoBehaviour
             SimulationManager.SimPhase.Phase2b_StentDeploy => stent,
             SimulationManager.SimPhase.Phase2c_Extraction => "Pull back slowly. Keep the pace bar green. It buzzes if you go too fast.",
             SimulationManager.SimPhase.Phase2d_ControlAngio => AngioText(),
-            SimulationManager.SimPhase.Phase3_Results => "Procedure complete. A: same case again. B: next case.",
+            SimulationManager.SimPhase.Phase3_Results => "Your route: green on track, amber off track, red mistakes. A: same case. B: next case.",
             _ => ""
         };
     }
